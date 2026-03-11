@@ -7,11 +7,19 @@ const uri = process.env.MONGODB_URI;
 console.log(`MONGODB_URI prefix: ${uri ? uri.split(':')[0] + '://' : 'NOT SET'}`);
 
 const express = require('express');
+const cors = require('cors');
 const mongoose = require('mongoose');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
 
+app.use(cors({
+  origin: /^http:\/\/localhost(:\d+)?$/,
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  methods: ['GET', 'POST', 'PATCH', 'PUT', 'DELETE', 'OPTIONS'],
+  credentials: true,
+}));
+app.options('*', cors());
 app.use(express.json());
 
 app.get('/health', (_req, res) => res.json({ ok: true }));
