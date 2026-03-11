@@ -64,7 +64,10 @@ export default function SessionsPage() {
     <main style={{ padding: 24, maxWidth: 640, margin: '0 auto' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
         <h1 style={{ fontSize: 22, fontWeight: 700 }}>Find Sessions</h1>
-        <Link href="/sessions/new" style={{ fontWeight: 600, color: '#3b82f6' }}>+ Create</Link>
+        <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
+          <Link href="/notifications" style={{ fontSize: 14, color: '#6b7280' }}>Notifications</Link>
+          <Link href="/sessions/new" style={{ fontWeight: 600, color: '#3b82f6' }}>+ Create</Link>
+        </div>
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>

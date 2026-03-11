@@ -51,9 +51,10 @@ export default async function HomePage() {
         }}
       >
         <h1 style={{ fontSize: 24, fontWeight: 700 }}>Event Buddy Map</h1>
-        <Link href="/sessions/new" style={{ fontWeight: 700 }}>
-          + Create
-        </Link>
+        <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
+          <Link href="/notifications" style={{ fontSize: 14, color: '#6b7280' }}>Notifications</Link>
+          <Link href="/sessions/new" style={{ fontWeight: 700 }}>+ Create</Link>
+        </div>
       </div>
 
       {errorMsg && (
