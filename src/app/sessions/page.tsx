@@ -1,14 +1,18 @@
 'use client';
 
 import { useState } from 'react';
+import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { apiFetch } from '@/lib/api';
+
+const SessionsMap = dynamic(() => import('@/components/SessionsMap'), { ssr: false });
 
 type Session = {
   _id: string;
   title: string;
   startAt: string;
   publicAreaLabel?: string;
+  publicLocation: { type: 'Point'; coordinates: [number, number] };
 };
 
 type SessionItem = {
@@ -130,6 +134,13 @@ export default function SessionsPage() {
       {errorMsg && (
         <p style={{ marginTop: 16, color: '#ef4444', fontSize: 14 }}>Error: {errorMsg}</p>
       )}
+
+      <div style={{ marginTop: 20 }}>
+        <SessionsMap
+          items={items}
+          center={lat != null && lng != null ? [lat, lng] : null}
+        />
+      </div>
 
       <div style={{ marginTop: 20, display: 'grid', gap: 12 }}>
         {items.length === 0 && !loading && !errorMsg && (
