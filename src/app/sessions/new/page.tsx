@@ -23,11 +23,22 @@ const labelStyle: React.CSSProperties = {
   color: '#374151',
 };
 
+async function geocode(query: string): Promise<{ lat: number; lng: number } | null> {
+  const res = await fetch(
+    `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=1`,
+    { headers: { 'Accept-Language': 'en' } }
+  );
+  const data = await res.json();
+  if (!data.length) return null;
+  return { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) };
+}
+
 export default function NewSessionPage() {
   const router = useRouter();
   const [title, setTitle] = useState('');
   const [startAt, setStartAt] = useState('');
   const [endAt, setEndAt] = useState('');
+  const [locationText, setLocationText] = useState('');
   const [publicAreaLabel, setPublicAreaLabel] = useState('');
   const [requiresApproval, setRequiresApproval] = useState(true);
   const [lat, setLat] = useState<number | null>(null);
@@ -44,6 +55,7 @@ export default function NewSessionPage() {
       (pos) => {
         setLat(pos.coords.latitude);
         setLng(pos.coords.longitude);
+        setLocationText('');
         setErrorMsg('');
       },
       () => setErrorMsg('Location permission denied.')
@@ -52,12 +64,33 @@ export default function NewSessionPage() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (lat == null || lng == null) {
-      setErrorMsg('Please allow location access first.');
-      return;
-    }
     setErrorMsg('');
     setLoading(true);
+
+    let resolvedLat = lat;
+    let resolvedLng = lng;
+
+    if ((resolvedLat == null || resolvedLng == null) && locationText.trim()) {
+      const result = await geocode(locationText.trim());
+      if (!result) {
+        setErrorMsg('Could not find that location.');
+        setLoading(false);
+        return;
+      }
+      resolvedLat = result.lat;
+      resolvedLng = result.lng;
+      setLat(resolvedLat);
+      setLng(resolvedLng);
+    }
+
+    if (resolvedLat == null || resolvedLng == null) {
+      setErrorMsg('Enter a location or use your current location.');
+      setLoading(false);
+      return;
+    }
+
+    const areaLabel = publicAreaLabel.trim() || (locationText.trim() ? locationText.trim() : '');
+
     try {
       const data = await apiFetch<{ session: { _id: string } }>('/sessions', {
         method: 'POST',
@@ -65,9 +98,9 @@ export default function NewSessionPage() {
           title,
           startAt: new Date(startAt).toISOString(),
           endAt: new Date(endAt).toISOString(),
-          publicAreaLabel,
+          publicAreaLabel: areaLabel,
           requiresApproval,
-          publicLocation: { lng, lat },
+          publicLocation: { lng: resolvedLng, lat: resolvedLat },
         },
       });
       router.push(`/sessions/${data.session._id}`);
@@ -108,8 +141,38 @@ export default function NewSessionPage() {
           </div>
 
           <label style={labelStyle}>
-            Area label <span style={{ fontWeight: 400, color: '#9ca3af' }}>(public)</span>
-            <input value={publicAreaLabel} onChange={(e) => setPublicAreaLabel(e.target.value)} placeholder="e.g. Downtown Vancouver" style={inputStyle} />
+            Location *
+            <div style={{ display: 'flex', gap: 8, marginTop: 6 }}>
+              <input
+                type="text"
+                placeholder="e.g. Vancouver, BC"
+                value={locationText}
+                onChange={(e) => { setLocationText(e.target.value); setLat(null); setLng(null); }}
+                style={{ ...inputStyle, marginTop: 0, flex: 1 }}
+              />
+              <button
+                type="button"
+                onClick={getLocation}
+                style={{ padding: '10px 14px', borderRadius: 8, background: '#eff6ff', color: '#3b82f6', fontWeight: 600, border: '1px solid #bfdbfe', cursor: 'pointer', fontSize: 13, whiteSpace: 'nowrap' }}
+              >
+                Use my location
+              </button>
+            </div>
+            {lat != null && lng != null && (
+              <span style={{ fontSize: 12, color: '#6b7280', marginTop: 4, display: 'block' }}>
+                {locationText ? locationText : `${lat.toFixed(4)}, ${lng.toFixed(4)}`}
+              </span>
+            )}
+          </label>
+
+          <label style={labelStyle}>
+            Area label <span style={{ fontWeight: 400, color: '#9ca3af' }}>(public — auto-filled from location if empty)</span>
+            <input
+              value={publicAreaLabel}
+              onChange={(e) => setPublicAreaLabel(e.target.value)}
+              placeholder="e.g. Downtown Vancouver"
+              style={inputStyle}
+            />
           </label>
 
           <label style={{ ...labelStyle, display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer' }}>
@@ -121,19 +184,6 @@ export default function NewSessionPage() {
             />
             Requires approval to join
           </label>
-
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <button
-              type="button"
-              onClick={getLocation}
-              style={{ padding: '8px 16px', borderRadius: 8, background: '#eff6ff', color: '#3b82f6', fontWeight: 600, border: '1px solid #bfdbfe', cursor: 'pointer', fontSize: 13 }}
-            >
-              Use my location
-            </button>
-            {lat != null && lng != null && (
-              <span style={{ fontSize: 13, color: '#6b7280' }}>{lat.toFixed(4)}, {lng.toFixed(4)}</span>
-            )}
-          </div>
 
           {errorMsg && (
             <p style={{ fontSize: 13, color: '#ef4444', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 8, padding: '8px 12px', margin: 0 }}>
