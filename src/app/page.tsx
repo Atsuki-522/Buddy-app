@@ -42,26 +42,14 @@ export default async function HomePage() {
   }
 
   return (
-    <main style={{ padding: 24 }}>
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-        }}
-      >
-        <h1 style={{ fontSize: 24, fontWeight: 700 }}>Event Buddy Map</h1>
-        <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
-          <Link href="/notifications" style={{ fontSize: 14, color: '#6b7280' }}>Notifications</Link>
-          <Link href="/sessions/new" style={{ fontWeight: 700 }}>+ Create</Link>
-        </div>
-      </div>
+    <main>
+      <h1 style={{ fontSize: 22, fontWeight: 700, marginBottom: 16 }}>Nearby Sessions</h1>
 
       {errorMsg && (
-        <p style={{ marginTop: 16, color: "#ef4444" }}>Error: {errorMsg}</p>
+        <p style={{ color: "#ef4444" }}>Error: {errorMsg}</p>
       )}
 
-      <div style={{ marginTop: 16, display: "grid", gap: 12 }}>
+      <div style={{ display: "grid", gap: 12 }}>
         {items.length === 0 && !errorMsg ? (
           <p>No sessions yet. Create one!</p>
         ) : (
@@ -71,16 +59,20 @@ export default async function HomePage() {
               href={`/sessions/${session._id}`}
               style={{
                 display: "block",
-                padding: 12,
-                border: "1px solid #e5e5e5",
-                borderRadius: 12,
+                padding: '16px 18px',
+                background: '#fff',
+                border: "1px solid #e5e7eb",
+                borderRadius: 14,
+                boxShadow: '0 1px 4px rgba(0,0,0,0.06)',
+                textDecoration: 'none',
+                color: 'inherit',
               }}
             >
-              <div style={{ fontWeight: 800 }}>{session.title}</div>
-              <div style={{ opacity: 0.7, marginTop: 4 }}>
-                {new Date(session.startAt).toLocaleString("en-CA")} •{" "}
-                {session.publicAreaLabel ?? ""} •{" "}
-                {Math.round(distanceMeters)}m
+              <div style={{ fontWeight: 700, fontSize: 15, color: '#111827' }}>{session.title}</div>
+              <div style={{ marginTop: 6, fontSize: 13, color: '#6b7280', display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                <span>{new Date(session.startAt).toLocaleString("en-CA")}</span>
+                {session.publicAreaLabel && <><span>·</span><span>{session.publicAreaLabel}</span></>}
+                <span>·</span><span>{Math.round(distanceMeters)}m away</span>
               </div>
             </Link>
           ))

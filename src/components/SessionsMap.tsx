@@ -43,6 +43,7 @@ type SessionItem = {
 type Props = {
   items: SessionItem[];
   center?: [number, number] | null; // [lat, lng]
+  height?: number;
 };
 
 function RecenterMap({ center }: { center: [number, number] }) {
@@ -70,14 +71,14 @@ function FitBounds({ items }: { items: SessionItem[] }) {
   return null;
 }
 
-export default function SessionsMap({ items, center }: Props) {
+export default function SessionsMap({ items, center, height = 300 }: Props) {
   const initialCenter: [number, number] = center ?? VANCOUVER;
 
   return (
     <MapContainer
       center={initialCenter}
       zoom={13}
-      style={{ height: 360, width: '100%', borderRadius: 12, border: '1px solid #e5e7eb' }}
+      style={{ height, width: '100%', borderRadius: 12, border: '1px solid #e5e7eb' }}
     >
       <TileLayer
         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'

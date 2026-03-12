@@ -103,7 +103,7 @@ export default function SessionDetailPage() {
   }, [id]);
 
   return (
-    <main style={{ padding: 24, maxWidth: 560, margin: '0 auto' }}>
+    <main style={{ maxWidth: 560 }}>
       <Link href="/sessions" style={{ fontSize: 13, color: '#3b82f6', textDecoration: 'underline' }}>
         ← Back to sessions
       </Link>

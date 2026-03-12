@@ -5,6 +5,25 @@ import { useRouter } from 'next/navigation';
 import { apiFetch, ApiError } from '@/lib/api';
 import { setToken } from '@/lib/auth';
 
+const inputStyle: React.CSSProperties = {
+  display: 'block',
+  width: '100%',
+  marginTop: 6,
+  padding: '10px 12px',
+  border: '1px solid #d1d5db',
+  borderRadius: 8,
+  fontSize: 14,
+  outline: 'none',
+  boxSizing: 'border-box',
+};
+
+const labelStyle: React.CSSProperties = {
+  display: 'block',
+  fontSize: 13,
+  fontWeight: 600,
+  color: '#374151',
+};
+
 export default function RegisterPage() {
   const router = useRouter();
   const [email, setEmail] = useState('');
@@ -34,46 +53,65 @@ export default function RegisterPage() {
   }
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-gray-50">
-      <div className="w-full max-w-sm rounded-xl bg-white p-8 shadow">
-        <h1 className="mb-6 text-xl font-bold">Register</h1>
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-          <input
-            type="text"
-            placeholder="Display Name"
-            value={displayName}
-            onChange={(e) => setDisplayName(e.target.value)}
-            required
-            className="rounded border px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-400"
-          />
-          <input
-            type="email"
-            placeholder="Email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-            className="rounded border px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-400"
-          />
-          <input
-            type="password"
-            placeholder="Password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-            className="rounded border px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-400"
-          />
-          {errorMsg && <p className="text-sm text-red-500">{errorMsg}</p>}
+    <main style={{ maxWidth: 400, paddingTop: 40 }}>
+      <div style={{ background: '#fff', borderRadius: 16, border: '1px solid #e5e7eb', boxShadow: '0 2px 8px rgba(0,0,0,0.08)', padding: '32px 32px' }}>
+        <h1 style={{ fontSize: 20, fontWeight: 700, marginBottom: 24, color: '#111827' }}>Create an account</h1>
+
+        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <label style={labelStyle}>
+            Display Name
+            <input
+              type="text"
+              value={displayName}
+              onChange={(e) => setDisplayName(e.target.value)}
+              required
+              autoComplete="name"
+              style={inputStyle}
+            />
+          </label>
+
+          <label style={labelStyle}>
+            Email
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+              autoComplete="email"
+              style={inputStyle}
+            />
+          </label>
+
+          <label style={labelStyle}>
+            Password
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              autoComplete="new-password"
+              style={inputStyle}
+            />
+          </label>
+
+          {errorMsg && (
+            <p style={{ fontSize: 13, color: '#ef4444', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 8, padding: '8px 12px', margin: 0 }}>
+              {errorMsg}
+            </p>
+          )}
+
           <button
             type="submit"
             disabled={loading}
-            className="rounded bg-blue-500 py-2 text-sm font-semibold text-white hover:bg-blue-600 disabled:opacity-50"
+            style={{ padding: '11px 0', borderRadius: 8, background: loading ? '#9ca3af' : '#111827', color: '#fff', fontWeight: 600, border: 'none', cursor: loading ? 'not-allowed' : 'pointer', fontSize: 14, marginTop: 4 }}
           >
             {loading ? 'Creating account...' : 'Register'}
           </button>
         </form>
-        <p className="mt-4 text-center text-sm text-gray-500">
+
+        <p style={{ marginTop: 20, textAlign: 'center', fontSize: 13, color: '#6b7280' }}>
           Already have an account?{' '}
-          <a href="/login" className="text-blue-500 underline">
+          <a href="/login" style={{ color: '#3b82f6', textDecoration: 'underline', fontWeight: 500 }}>
             Login
           </a>
         </p>

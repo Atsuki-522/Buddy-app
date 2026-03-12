@@ -45,7 +45,7 @@ export default function NotificationsPage() {
   }
 
   return (
-    <main style={{ padding: 24, maxWidth: 560, margin: '0 auto' }}>
+    <main style={{ maxWidth: 560 }}>
       <h1 style={{ fontSize: 22, fontWeight: 700, marginBottom: 4 }}>Notifications</h1>
       <p style={{ fontSize: 14, color: '#6b7280', marginBottom: 20 }}>
         {unreadCount} unread
@@ -64,21 +64,23 @@ export default function NotificationsPage() {
           <div
             key={n._id}
             style={{
-              padding: 14,
-              borderRadius: 10,
+              padding: '14px 16px',
+              borderRadius: 14,
               border: '1px solid #e5e7eb',
-              background: n.readAt ? '#fff' : '#eff6ff',
+              background: '#fff',
+              boxShadow: '0 1px 4px rgba(0,0,0,0.06)',
               display: 'flex',
-              gap: 12,
+              gap: 14,
               alignItems: 'flex-start',
+              borderLeft: n.readAt ? '3px solid transparent' : '3px solid #3b82f6',
             }}
           >
             <div style={{ flex: 1 }}>
-              <div style={{ fontWeight: 600, fontSize: 14 }}>{n.title}</div>
-              <div style={{ fontSize: 13, color: '#374151', marginTop: 2 }}>{n.body}</div>
-              <div style={{ fontSize: 11, color: '#9ca3af', marginTop: 6 }}>
+              <div style={{ fontWeight: 600, fontSize: 14, color: n.readAt ? '#374151' : '#111827' }}>{n.title}</div>
+              <div style={{ fontSize: 13, color: '#6b7280', marginTop: 4, lineHeight: 1.5 }}>{n.body}</div>
+              <div style={{ fontSize: 11, color: '#9ca3af', marginTop: 8 }}>
                 {new Date(n.createdAt).toLocaleString('en-CA')}
-                {n.readAt ? ' · Read' : ' · Unread'}
+                {!n.readAt && <span style={{ marginLeft: 8, color: '#3b82f6', fontWeight: 600 }}>● Unread</span>}
               </div>
             </div>
             {!n.readAt && (
@@ -87,14 +89,15 @@ export default function NotificationsPage() {
                 disabled={marking === n._id}
                 style={{
                   flexShrink: 0,
-                  padding: '5px 11px',
-                  borderRadius: 6,
-                  background: marking === n._id ? '#9ca3af' : '#3b82f6',
-                  color: '#fff',
+                  padding: '6px 12px',
+                  borderRadius: 8,
+                  background: marking === n._id ? '#e5e7eb' : '#f3f4f6',
+                  color: marking === n._id ? '#9ca3af' : '#374151',
                   fontWeight: 600,
-                  border: 'none',
+                  border: '1px solid #e5e7eb',
                   cursor: marking === n._id ? 'not-allowed' : 'pointer',
                   fontSize: 12,
+                  whiteSpace: 'nowrap',
                 }}
               >
                 {marking === n._id ? '...' : 'Mark as read'}

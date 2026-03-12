@@ -7,11 +7,20 @@ import { apiFetch } from '@/lib/api';
 const inputStyle: React.CSSProperties = {
   display: 'block',
   width: '100%',
-  marginTop: 4,
-  padding: '8px 10px',
+  marginTop: 6,
+  padding: '10px 12px',
   border: '1px solid #d1d5db',
-  borderRadius: 6,
+  borderRadius: 8,
   fontSize: 14,
+  outline: 'none',
+  boxSizing: 'border-box',
+};
+
+const labelStyle: React.CSSProperties = {
+  display: 'block',
+  fontSize: 13,
+  fontWeight: 600,
+  color: '#374151',
 };
 
 export default function NewSessionPage() {
@@ -77,71 +86,73 @@ export default function NewSessionPage() {
   const isUnauth = errorMsg.includes('logged in');
 
   return (
-    <main style={{ padding: 24, maxWidth: 560, margin: '0 auto' }}>
-      <h1 style={{ fontSize: 22, fontWeight: 700, marginBottom: 20 }}>Create Session</h1>
+    <main style={{ maxWidth: 520 }}>
+      <h1 style={{ fontSize: 20, fontWeight: 700, marginBottom: 20, color: '#111827' }}>Create Session</h1>
 
-      <form onSubmit={handleSubmit} style={{ display: 'grid', gap: 14 }}>
-        <label style={{ fontSize: 14, fontWeight: 500 }}>
-          Title *
-          <input required value={title} onChange={(e) => setTitle(e.target.value)} style={inputStyle} />
-        </label>
+      <div style={{ background: '#fff', borderRadius: 16, border: '1px solid #e5e7eb', boxShadow: '0 2px 8px rgba(0,0,0,0.08)', padding: '28px 28px' }}>
+        <form onSubmit={handleSubmit} style={{ display: 'grid', gap: 16 }}>
+          <label style={labelStyle}>
+            Title *
+            <input required value={title} onChange={(e) => setTitle(e.target.value)} style={inputStyle} />
+          </label>
 
-        <label style={{ fontSize: 14, fontWeight: 500 }}>
-          Start
-          <input required type="datetime-local" value={startAt} onChange={(e) => setStartAt(e.target.value)} style={inputStyle} />
-        </label>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            <label style={labelStyle}>
+              Start
+              <input required type="datetime-local" value={startAt} onChange={(e) => setStartAt(e.target.value)} style={inputStyle} />
+            </label>
+            <label style={labelStyle}>
+              End
+              <input required type="datetime-local" value={endAt} onChange={(e) => setEndAt(e.target.value)} style={inputStyle} />
+            </label>
+          </div>
 
-        <label style={{ fontSize: 14, fontWeight: 500 }}>
-          End
-          <input required type="datetime-local" value={endAt} onChange={(e) => setEndAt(e.target.value)} style={inputStyle} />
-        </label>
+          <label style={labelStyle}>
+            Area label <span style={{ fontWeight: 400, color: '#9ca3af' }}>(public)</span>
+            <input value={publicAreaLabel} onChange={(e) => setPublicAreaLabel(e.target.value)} placeholder="e.g. Downtown Vancouver" style={inputStyle} />
+          </label>
 
-        <label style={{ fontSize: 14, fontWeight: 500 }}>
-          Area label (public)
-          <input value={publicAreaLabel} onChange={(e) => setPublicAreaLabel(e.target.value)} placeholder="e.g. Downtown Vancouver" style={inputStyle} />
-        </label>
+          <label style={{ ...labelStyle, display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer' }}>
+            <input
+              type="checkbox"
+              checked={requiresApproval}
+              onChange={(e) => setRequiresApproval(e.target.checked)}
+              style={{ width: 16, height: 16, cursor: 'pointer' }}
+            />
+            Requires approval to join
+          </label>
 
-        <label style={{ fontSize: 14, fontWeight: 500, display: 'flex', alignItems: 'center', gap: 8 }}>
-          <input
-            type="checkbox"
-            checked={requiresApproval}
-            onChange={(e) => setRequiresApproval(e.target.checked)}
-          />
-          Requires approval to join
-        </label>
-
-        <div>
-          <button
-            type="button"
-            onClick={getLocation}
-            style={{ padding: '7px 14px', borderRadius: 6, background: '#3b82f6', color: '#fff', fontWeight: 600, border: 'none', cursor: 'pointer', fontSize: 13 }}
-          >
-            Use my location
-          </button>
-          {lat != null && lng != null && (
-            <span style={{ marginLeft: 10, fontSize: 13, color: '#6b7280' }}>
-              {lat.toFixed(4)}, {lng.toFixed(4)}
-            </span>
-          )}
-        </div>
-
-        {errorMsg && (
-          <p style={{ color: '#ef4444', fontSize: 14 }}>
-            Error: {errorMsg}
-            {isUnauth && (
-              <> — <a href="/login" style={{ color: '#3b82f6', textDecoration: 'underline' }}>Sign in</a></>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <button
+              type="button"
+              onClick={getLocation}
+              style={{ padding: '8px 16px', borderRadius: 8, background: '#eff6ff', color: '#3b82f6', fontWeight: 600, border: '1px solid #bfdbfe', cursor: 'pointer', fontSize: 13 }}
+            >
+              Use my location
+            </button>
+            {lat != null && lng != null && (
+              <span style={{ fontSize: 13, color: '#6b7280' }}>{lat.toFixed(4)}, {lng.toFixed(4)}</span>
             )}
-          </p>
-        )}
+          </div>
 
-        <button
-          type="submit"
-          disabled={loading}
-          style={{ padding: '10px 0', borderRadius: 8, background: loading ? '#9ca3af' : '#111827', color: '#fff', fontWeight: 700, border: 'none', cursor: loading ? 'not-allowed' : 'pointer', fontSize: 15 }}
-        >
-          {loading ? 'Creating...' : 'Create Session'}
-        </button>
-      </form>
+          {errorMsg && (
+            <p style={{ fontSize: 13, color: '#ef4444', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 8, padding: '8px 12px', margin: 0 }}>
+              {errorMsg}
+              {isUnauth && (
+                <> — <a href="/login" style={{ color: '#3b82f6', textDecoration: 'underline' }}>Sign in</a></>
+              )}
+            </p>
+          )}
+
+          <button
+            type="submit"
+            disabled={loading}
+            style={{ padding: '11px 0', borderRadius: 8, background: loading ? '#9ca3af' : '#111827', color: '#fff', fontWeight: 600, border: 'none', cursor: loading ? 'not-allowed' : 'pointer', fontSize: 14, marginTop: 4 }}
+          >
+            {loading ? 'Creating...' : 'Create Session'}
+          </button>
+        </form>
+      </div>
     </main>
   );
 }

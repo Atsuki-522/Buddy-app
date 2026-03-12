@@ -23,6 +23,7 @@ type SessionItem = {
 export default function SessionsPage() {
   const [lat, setLat] = useState<number | null>(null);
   const [lng, setLng] = useState<number | null>(null);
+  const [locationText, setLocationText] = useState('');
   const [radiusKm, setRadiusKm] = useState(5);
   const [startsWithinMin, setStartsWithinMin] = useState(4320);
   const [limit, setLimit] = useState(20);
@@ -39,21 +40,52 @@ export default function SessionsPage() {
       (pos) => {
         setLat(pos.coords.latitude);
         setLng(pos.coords.longitude);
+        setLocationText('');
         setErrorMsg('');
       },
       () => setErrorMsg('Location permission denied.')
     );
   }
 
+  async function geocode(query: string): Promise<{ lat: number; lng: number } | null> {
+    const res = await fetch(
+      `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=1`,
+      { headers: { 'Accept-Language': 'en' } }
+    );
+    const data = await res.json();
+    if (!data.length) return null;
+    return { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) };
+  }
+
   async function handleSearch() {
-    if (lat == null || lng == null) {
-      setErrorMsg('Please allow location access first.');
+    setErrorMsg('');
+
+    let searchLat = lat;
+    let searchLng = lng;
+
+    // Try geocoding the text input if lat/lng not set from geolocation
+    if ((searchLat == null || searchLng == null) && locationText.trim()) {
+      setLoading(true);
+      const result = await geocode(locationText.trim());
+      if (!result) {
+        setErrorMsg('Could not find that location.');
+        setLoading(false);
+        return;
+      }
+      searchLat = result.lat;
+      searchLng = result.lng;
+      setLat(searchLat);
+      setLng(searchLng);
+    }
+
+    if (searchLat == null || searchLng == null) {
+      setErrorMsg('Enter a location or use your current location.');
       return;
     }
-    setErrorMsg('');
+
     setLoading(true);
     try {
-      const query = `lat=${lat}&lng=${lng}&radiusKm=${radiusKm}&startsWithinMin=${startsWithinMin}&limit=${limit}`;
+      const query = `lat=${searchLat}&lng=${searchLng}&radiusKm=${radiusKm}&startsWithinMin=${startsWithinMin}&limit=${limit}`;
       const data = await apiFetch<{ items: SessionItem[] }>(`/sessions?${query}`, { auth: false });
       setItems(data.items ?? []);
     } catch (err) {
@@ -65,26 +97,30 @@ export default function SessionsPage() {
   }
 
   return (
-    <main style={{ padding: 24, maxWidth: 640, margin: '0 auto' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-        <h1 style={{ fontSize: 22, fontWeight: 700 }}>Find Sessions</h1>
-        <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
-          <Link href="/notifications" style={{ fontSize: 14, color: '#6b7280' }}>Notifications</Link>
-          <Link href="/sessions/new" style={{ fontWeight: 600, color: '#3b82f6' }}>+ Create</Link>
-        </div>
-      </div>
+    <main>
+      <h1 style={{ fontSize: 22, fontWeight: 700, marginBottom: 20 }}>Find Sessions</h1>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-        <button
-          onClick={getLocation}
-          style={{ padding: '8px 16px', borderRadius: 8, background: '#3b82f6', color: '#fff', fontWeight: 600, border: 'none', cursor: 'pointer' }}
-        >
-          Use my location
-        </button>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <input
+            type="text"
+            placeholder="e.g. Vancouver, BC"
+            value={locationText}
+            onChange={(e) => { setLocationText(e.target.value); setLat(null); setLng(null); }}
+            style={{ flex: 1, padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: 8, fontSize: 14, outline: 'none' }}
+          />
+          <button
+            type="button"
+            onClick={getLocation}
+            style={{ padding: '8px 14px', borderRadius: 8, background: '#eff6ff', color: '#3b82f6', fontWeight: 600, border: '1px solid #bfdbfe', cursor: 'pointer', fontSize: 13, whiteSpace: 'nowrap' }}
+          >
+            Use my location
+          </button>
+        </div>
 
         {lat != null && lng != null && (
           <p style={{ fontSize: 13, color: '#6b7280' }}>
-            Location: {lat.toFixed(4)}, {lng.toFixed(4)}
+            {locationText ? locationText : `${lat.toFixed(4)}, ${lng.toFixed(4)}`}
           </p>
         )}
 
@@ -135,31 +171,43 @@ export default function SessionsPage() {
         <p style={{ marginTop: 16, color: '#ef4444', fontSize: 14 }}>Error: {errorMsg}</p>
       )}
 
-      <div style={{ marginTop: 20 }}>
-        <SessionsMap
-          items={items}
-          center={lat != null && lng != null ? [lat, lng] : null}
-        />
-      </div>
+      {/* 2-column layout: cards left, map right — always visible */}
+      <div style={{ marginTop: 20, display: 'flex', gap: 16, alignItems: 'flex-start', flexWrap: 'wrap' }}>
 
-      <div style={{ marginTop: 20, display: 'grid', gap: 12 }}>
-        {items.length === 0 && !loading && !errorMsg && (
-          <p style={{ color: '#6b7280', fontSize: 14 }}>No sessions found. Try adjusting the filters.</p>
-        )}
-        {items.map(({ session, distanceMeters }) => (
-          <Link
-            key={session._id}
-            href={`/sessions/${session._id}`}
-            style={{ display: 'block', padding: 14, border: '1px solid #e5e7eb', borderRadius: 12, textDecoration: 'none', color: 'inherit' }}
-          >
-            <div style={{ fontWeight: 700, fontSize: 16 }}>{session.title}</div>
-            <div style={{ marginTop: 4, fontSize: 13, color: '#6b7280' }}>
-              {new Date(session.startAt).toLocaleString('en-CA')}
-              {session.publicAreaLabel && ` • ${session.publicAreaLabel}`}
-              {' • '}{Math.round(distanceMeters)}m away
+        {/* Left: session cards */}
+        <div style={{ flex: '55 1 280px', maxHeight: 460, overflowY: 'auto', display: 'grid', gap: 12, paddingRight: 4 }}>
+          {items.length === 0 ? (
+            <div style={{ padding: '28px 20px', background: '#fff', border: '1px solid #e5e7eb', borderRadius: 14, boxShadow: '0 1px 4px rgba(0,0,0,0.06)', textAlign: 'center' }}>
+              <div style={{ fontSize: 15, fontWeight: 600, color: '#374151', marginBottom: 6 }}>No sessions found yet.</div>
+              <div style={{ fontSize: 13, color: '#9ca3af' }}>Try using your location and search again.</div>
             </div>
-          </Link>
-        ))}
+          ) : (
+            items.map(({ session, distanceMeters }) => (
+              <Link
+                key={session._id}
+                href={`/sessions/${session._id}`}
+                style={{ display: 'block', padding: '16px 18px', background: '#fff', border: '1px solid #e5e7eb', borderRadius: 14, boxShadow: '0 1px 4px rgba(0,0,0,0.06)', textDecoration: 'none', color: 'inherit' }}
+              >
+                <div style={{ fontWeight: 700, fontSize: 15, color: '#111827' }}>{session.title}</div>
+                <div style={{ marginTop: 6, fontSize: 13, color: '#6b7280', display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                  <span>{new Date(session.startAt).toLocaleString('en-CA')}</span>
+                  {session.publicAreaLabel && <><span>·</span><span>{session.publicAreaLabel}</span></>}
+                  <span>·</span><span>{Math.round(distanceMeters)}m away</span>
+                </div>
+              </Link>
+            ))
+          )}
+        </div>
+
+        {/* Right: map — always shown */}
+        <div style={{ flex: '45 1 240px' }}>
+          <SessionsMap
+            items={items}
+            center={lat != null && lng != null ? [lat, lng] : null}
+            height={300}
+          />
+        </div>
+
       </div>
     </main>
   );
