@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import { apiFetch } from '@/lib/api';
 
 type Notification = {
@@ -9,13 +10,27 @@ type Notification = {
   body: string;
   createdAt: string;
   readAt: string | null;
+  sessionId?: string | null;
+  meta?: { deeplink?: string };
 };
 
 export default function NotificationsPage() {
+  const router = useRouter();
   const [items, setItems] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [errorMsg, setErrorMsg] = useState('');
   const [marking, setMarking] = useState<string | null>(null);
+
+  function getDestination(n: Notification): string | null {
+    if (n.meta?.deeplink) return n.meta.deeplink;
+    if (n.sessionId) return `/sessions/${n.sessionId}`;
+    return null;
+  }
+
+  function handleCardClick(n: Notification) {
+    const dest = getDestination(n);
+    if (dest) router.push(dest);
+  }
 
   const load = useCallback(() => {
     setErrorMsg('');
@@ -63,6 +78,7 @@ export default function NotificationsPage() {
         {items.map((n) => (
           <div
             key={n._id}
+            onClick={() => handleCardClick(n)}
             style={{
               padding: '14px 16px',
               borderRadius: 14,
@@ -73,6 +89,7 @@ export default function NotificationsPage() {
               gap: 14,
               alignItems: 'flex-start',
               borderLeft: n.readAt ? '3px solid transparent' : '3px solid #3b82f6',
+              cursor: getDestination(n) ? 'pointer' : 'default',
             }}
           >
             <div style={{ flex: 1 }}>
@@ -85,7 +102,7 @@ export default function NotificationsPage() {
             </div>
             {!n.readAt && (
               <button
-                onClick={() => markRead(n._id)}
+                onClick={(e) => { e.stopPropagation(); markRead(n._id); }}
                 disabled={marking === n._id}
                 style={{
                   flexShrink: 0,

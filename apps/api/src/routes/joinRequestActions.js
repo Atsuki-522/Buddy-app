@@ -10,6 +10,22 @@ async function assertHost(session, userId) {
   return !!(await SessionMember.findOne({ sessionId: session._id, userId, role: 'HOST' }).lean());
 }
 
+// GET /join-requests/mine
+router.get('/mine', requireAuth, async (req, res) => {
+  try {
+    const requests = await JoinRequest.find({ userId: req.user.sub, status: 'PENDING' })
+      .sort({ createdAt: -1 })
+      .lean();
+    const sessionIds = [...new Set(requests.map((r) => String(r.sessionId)))];
+    const sessions = await Session.find({ _id: { $in: sessionIds } }).lean();
+    const sessionMap = Object.fromEntries(sessions.map((s) => [String(s._id), s]));
+    const items = requests.map((r) => ({ ...r, session: sessionMap[String(r.sessionId)] ?? null }));
+    res.json({ items });
+  } catch (err) {
+    res.status(500).json({ error: { code: 'SERVER_ERROR', message: err.message } });
+  }
+});
+
 // PATCH /join-requests/:rid/approve
 router.patch('/:rid/approve', requireAuth, async (req, res) => {
   try {

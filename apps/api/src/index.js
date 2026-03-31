@@ -29,6 +29,8 @@ app.use('/sessions/:id/join-requests', require('./routes/joinRequests'));
 app.use('/join-requests', require('./routes/joinRequestActions'));
 app.use('/sessions/:id', require('./routes/attendance'));
 app.use('/notifications', require('./routes/notifications'));
+app.use('/me', require('./routes/me'));
+app.use('/sessions/:id', require('./routes/messages'));
 
 if (uri) {
   mongoose

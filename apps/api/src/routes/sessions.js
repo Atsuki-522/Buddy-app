@@ -114,6 +114,22 @@ router.get('/', optionalAuth, async (req, res) => {
   }
 });
 
+// GET /sessions/mine?role=HOST|MEMBER
+router.get('/mine', requireAuth, async (req, res) => {
+  try {
+    const { role } = req.query;
+    const filter = { userId: req.user.sub };
+    if (role === 'HOST' || role === 'MEMBER') filter.role = role;
+
+    const members = await SessionMember.find(filter).lean();
+    const sessionIds = members.map((m) => m.sessionId);
+    const sessions = await Session.find({ _id: { $in: sessionIds } }).sort({ startAt: -1 }).lean();
+    res.json({ items: sessions });
+  } catch (err) {
+    res.status(500).json({ error: { code: 'SERVER_ERROR', message: err.message } });
+  }
+});
+
 // GET /sessions/:id
 router.get('/:id', optionalAuth, async (req, res) => {
   try {
@@ -136,6 +152,41 @@ router.get('/:id', optionalAuth, async (req, res) => {
     }
 
     res.json({ session, viewer: { role: viewerRole } });
+  } catch (err) {
+    res.status(500).json({ error: { code: 'SERVER_ERROR', message: err.message } });
+  }
+});
+
+// PATCH /sessions/:id
+router.patch('/:id', requireAuth, async (req, res) => {
+  try {
+    const session = await Session.findById(req.params.id);
+    if (!session) return res.status(404).json({ error: { code: 'NOT_FOUND', message: 'Session not found' } });
+    if (String(session.hostUserId) !== req.user.sub) {
+      return res.status(403).json({ error: { code: 'FORBIDDEN', message: 'Only the host can edit this session' } });
+    }
+    const allowed = ['title', 'goal', 'subject', 'language', 'venueType', 'startAt', 'endAt', 'maxPeople', 'publicAreaLabel', 'requiresApproval', 'status'];
+    const updates = {};
+    for (const key of allowed) {
+      if (req.body[key] !== undefined) updates[key] = req.body[key];
+    }
+    const updated = await Session.findByIdAndUpdate(req.params.id, { $set: updates }, { new: true });
+    res.json({ session: updated });
+  } catch (err) {
+    res.status(500).json({ error: { code: 'SERVER_ERROR', message: err.message } });
+  }
+});
+
+// DELETE /sessions/:id
+router.delete('/:id', requireAuth, async (req, res) => {
+  try {
+    const session = await Session.findById(req.params.id);
+    if (!session) return res.status(404).json({ error: { code: 'NOT_FOUND', message: 'Session not found' } });
+    if (String(session.hostUserId) !== req.user.sub) {
+      return res.status(403).json({ error: { code: 'FORBIDDEN', message: 'Only the host can delete this session' } });
+    }
+    await Session.findByIdAndDelete(req.params.id);
+    res.json({ ok: true });
   } catch (err) {
     res.status(500).json({ error: { code: 'SERVER_ERROR', message: err.message } });
   }

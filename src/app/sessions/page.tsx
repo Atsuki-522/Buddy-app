@@ -175,28 +175,33 @@ export default function SessionsPage() {
       <div style={{ marginTop: 20, display: 'flex', gap: 16, alignItems: 'flex-start', flexWrap: 'wrap' }}>
 
         {/* Left: session cards */}
-        <div style={{ flex: '55 1 280px', maxHeight: 460, overflowY: 'auto', display: 'grid', gap: 12, paddingRight: 4 }}>
-          {items.length === 0 ? (
-            <div style={{ padding: '28px 20px', background: '#fff', border: '1px solid #e5e7eb', borderRadius: 14, boxShadow: '0 1px 4px rgba(0,0,0,0.06)', textAlign: 'center' }}>
-              <div style={{ fontSize: 15, fontWeight: 600, color: '#374151', marginBottom: 6 }}>No sessions found yet.</div>
-              <div style={{ fontSize: 13, color: '#9ca3af' }}>Try using your location and search again.</div>
-            </div>
-          ) : (
-            items.map(({ session, distanceMeters }) => (
-              <Link
-                key={session._id}
-                href={`/sessions/${session._id}`}
-                style={{ display: 'block', padding: '16px 18px', background: '#fff', border: '1px solid #e5e7eb', borderRadius: 14, boxShadow: '0 1px 4px rgba(0,0,0,0.06)', textDecoration: 'none', color: 'inherit' }}
-              >
-                <div style={{ fontWeight: 700, fontSize: 15, color: '#111827' }}>{session.title}</div>
-                <div style={{ marginTop: 6, fontSize: 13, color: '#6b7280', display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                  <span>{new Date(session.startAt).toLocaleString('en-CA')}</span>
-                  {session.publicAreaLabel && <><span>·</span><span>{session.publicAreaLabel}</span></>}
-                  <span>·</span><span>{Math.round(distanceMeters)}m away</span>
+        <div style={{ flex: '55 1 280px', minWidth: 0 }}>
+          {/* Scroll wrapper — only this scrolls */}
+          <div style={{ height: 460, overflowY: 'auto', paddingRight: 4 }}>
+            <div style={{ display: 'grid', gap: 12 }}>
+              {items.length === 0 ? (
+                <div style={{ padding: '28px 20px', background: '#fff', border: '1px solid #e5e7eb', borderRadius: 14, boxShadow: '0 1px 4px rgba(0,0,0,0.06)', textAlign: 'center' }}>
+                  <div style={{ fontSize: 15, fontWeight: 600, color: '#374151', marginBottom: 6 }}>No sessions found yet.</div>
+                  <div style={{ fontSize: 13, color: '#9ca3af' }}>Try using your location and search again.</div>
                 </div>
-              </Link>
-            ))
-          )}
+              ) : (
+                items.map(({ session, distanceMeters }) => (
+                  <Link
+                    key={session._id}
+                    href={`/sessions/${session._id}`}
+                    style={{ display: 'block', padding: '16px 18px', background: '#fff', border: '1px solid #e5e7eb', borderRadius: 14, boxShadow: '0 1px 4px rgba(0,0,0,0.06)', textDecoration: 'none', color: 'inherit' }}
+                  >
+                    <div style={{ fontWeight: 700, fontSize: 15, color: '#111827' }}>{session.title}</div>
+                    <div style={{ marginTop: 6, fontSize: 13, color: '#6b7280', display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                      <span>{new Date(session.startAt).toLocaleString('en-CA')}</span>
+                      {session.publicAreaLabel && <><span>·</span><span>{session.publicAreaLabel}</span></>}
+                      <span>·</span><span>{Math.round(distanceMeters)}m away</span>
+                    </div>
+                  </Link>
+                ))
+              )}
+            </div>
+          </div>
         </div>
 
         {/* Right: map — always shown */}
