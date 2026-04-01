@@ -1,8 +1,11 @@
 'use client';
 
 import { useState } from 'react';
+import dynamic from 'next/dynamic';
 import { useRouter } from 'next/navigation';
 import { apiFetch } from '@/lib/api';
+
+const PinMap = dynamic(() => import('@/components/PinMap'), { ssr: false });
 
 const inputStyle: React.CSSProperties = {
   display: 'block',
@@ -43,6 +46,10 @@ export default function NewSessionPage() {
   const [requiresApproval, setRequiresApproval] = useState(true);
   const [lat, setLat] = useState<number | null>(null);
   const [lng, setLng] = useState<number | null>(null);
+  const [previewLat, setPreviewLat] = useState<number | null>(null);
+  const [previewLng, setPreviewLng] = useState<number | null>(null);
+  const [previewMsg, setPreviewMsg] = useState('');
+  const [previewLoading, setPreviewLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -55,11 +62,35 @@ export default function NewSessionPage() {
       (pos) => {
         setLat(pos.coords.latitude);
         setLng(pos.coords.longitude);
+        setPreviewLat(pos.coords.latitude);
+        setPreviewLng(pos.coords.longitude);
+        setPreviewMsg('');
         setLocationText('');
         setErrorMsg('');
       },
       () => setErrorMsg('Location permission denied.')
     );
+  }
+
+  async function handlePreview() {
+    setPreviewMsg('');
+    setPreviewLat(null);
+    setPreviewLng(null);
+    if (!locationText.trim()) {
+      setPreviewMsg('Enter a location first.');
+      return;
+    }
+    setPreviewLoading(true);
+    const result = await geocode(locationText.trim());
+    setPreviewLoading(false);
+    if (!result) {
+      setPreviewMsg('Could not find that location.');
+      return;
+    }
+    setLat(result.lat);
+    setLng(result.lng);
+    setPreviewLat(result.lat);
+    setPreviewLng(result.lng);
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -132,23 +163,23 @@ export default function NewSessionPage() {
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
             <label style={labelStyle}>
               Start
-              <input required type="datetime-local" value={startAt} onChange={(e) => setStartAt(e.target.value)} style={inputStyle} />
+              <input required type="datetime-local" lang="en" value={startAt} onChange={(e) => setStartAt(e.target.value)} style={inputStyle} />
             </label>
             <label style={labelStyle}>
               End
-              <input required type="datetime-local" value={endAt} onChange={(e) => setEndAt(e.target.value)} style={inputStyle} />
+              <input required type="datetime-local" lang="en" value={endAt} onChange={(e) => setEndAt(e.target.value)} style={inputStyle} />
             </label>
           </div>
 
           <label style={labelStyle}>
             Location *
-            <div style={{ display: 'flex', gap: 8, marginTop: 6 }}>
+            <div style={{ display: 'flex', gap: 8, marginTop: 6, flexWrap: 'wrap' }}>
               <input
                 type="text"
                 placeholder="e.g. Vancouver, BC"
                 value={locationText}
-                onChange={(e) => { setLocationText(e.target.value); setLat(null); setLng(null); }}
-                style={{ ...inputStyle, marginTop: 0, flex: 1 }}
+                onChange={(e) => { setLocationText(e.target.value); setLat(null); setLng(null); setPreviewLat(null); setPreviewLng(null); setPreviewMsg(''); }}
+                style={{ ...inputStyle, marginTop: 0, flex: 1, minWidth: 0 }}
               />
               <button
                 type="button"
@@ -157,11 +188,27 @@ export default function NewSessionPage() {
               >
                 Use my location
               </button>
+              <button
+                type="button"
+                onClick={handlePreview}
+                disabled={previewLoading}
+                style={{ padding: '10px 14px', borderRadius: 8, background: '#f0fdf4', color: '#16a34a', fontWeight: 600, border: '1px solid #bbf7d0', cursor: previewLoading ? 'not-allowed' : 'pointer', fontSize: 13, whiteSpace: 'nowrap' }}
+              >
+                {previewLoading ? '...' : 'Preview on map'}
+              </button>
             </div>
-            {lat != null && lng != null && (
-              <span style={{ fontSize: 12, color: '#6b7280', marginTop: 4, display: 'block' }}>
-                {locationText ? locationText : `${lat.toFixed(4)}, ${lng.toFixed(4)}`}
-              </span>
+            {previewMsg && (
+              <span style={{ fontSize: 12, color: '#ef4444', marginTop: 4, display: 'block' }}>{previewMsg}</span>
+            )}
+            {previewLat != null && previewLng != null && (
+              <>
+                <span style={{ fontSize: 12, color: '#6b7280', marginTop: 4, display: 'block' }}>
+                  {locationText || `${previewLat.toFixed(4)}, ${previewLng.toFixed(4)}`}
+                </span>
+                <div style={{ marginTop: 10 }}>
+                  <PinMap lat={previewLat} lng={previewLng} height={200} />
+                </div>
+              </>
             )}
           </label>
 

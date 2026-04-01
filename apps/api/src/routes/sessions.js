@@ -57,18 +57,23 @@ router.post('/', requireAuth, async (req, res) => {
 // GET /sessions
 router.get('/', optionalAuth, async (req, res) => {
   try {
-    const { lat, lng, radiusKm, startsWithinMin, limit } = req.query;
+    const { lat, lng, radiusKm, startAt, startsWithinHours, startsWithinMin, limit } = req.query;
 
     if (lat == null || lng == null) {
       return res.status(400).json({ error: { code: 'MISSING_FIELDS', message: 'lat and lng are required' } });
     }
 
-    const maxDistance = radiusKm ? parseFloat(radiusKm) * 1000 : 50000;
+    const maxDistance = radiusKm ? parseFloat(radiusKm) * 1000 : 10000;
     const limitNum = Math.min(parseInt(limit) || 20, 50);
     const now = new Date();
-    const startAtCeil = startsWithinMin
-      ? new Date(now.getTime() + parseFloat(startsWithinMin) * 60 * 1000)
-      : null;
+
+    // Build startAt ceiling filter (startsWithinMin takes priority, then startsWithinHours)
+    let startAtCeil = null;
+    if (startsWithinMin) {
+      startAtCeil = new Date(now.getTime() + parseFloat(startsWithinMin) * 60 * 1000);
+    } else if (startsWithinHours) {
+      startAtCeil = new Date(now.getTime() + parseFloat(startsWithinHours) * 60 * 60 * 1000);
+    }
 
     const matchStage = { status: 'OPEN' };
     if (startAtCeil) matchStage.startAt = { $lte: startAtCeil };
@@ -99,11 +104,20 @@ router.get('/', optionalAuth, async (req, res) => {
       },
     ];
 
-    const items = await Session.aggregate(pipeline);
+    let items = await Session.aggregate(pipeline);
 
-    // distanceMeters を session の外に出す
+    // If startAt provided, sort by closest time to that target
+    if (startAt) {
+      const target = new Date(startAt).getTime();
+      if (!isNaN(target)) {
+        items = items.sort((a, b) =>
+          Math.abs(new Date(a.session.startAt).getTime() - target) -
+          Math.abs(new Date(b.session.startAt).getTime() - target)
+        );
+      }
+    }
+
     const result = items.map(({ session, distanceMeters }) => {
-      // session.distanceMeters が紛れ込む場合を除去
       const { distanceMeters: _drop, ...rest } = session;
       return { session: rest, distanceMeters };
     });

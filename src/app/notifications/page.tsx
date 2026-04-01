@@ -20,6 +20,7 @@ export default function NotificationsPage() {
   const [unreadCount, setUnreadCount] = useState(0);
   const [errorMsg, setErrorMsg] = useState('');
   const [marking, setMarking] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState<string | null>(null);
 
   function getDestination(n: Notification): string | null {
     if (n.meta?.deeplink) return n.meta.deeplink;
@@ -46,6 +47,22 @@ export default function NotificationsPage() {
   }, []);
 
   useEffect(() => { load(); }, [load]);
+
+  async function deleteNotification(id: string) {
+    setDeleting(id);
+    try {
+      await apiFetch(`/notifications/${id}`, { method: 'DELETE' });
+      setItems((prev) => prev.filter((n) => n._id !== id));
+      setUnreadCount((prev) => {
+        const wasUnread = items.find((n) => n._id === id)?.readAt == null;
+        return wasUnread ? Math.max(0, prev - 1) : prev;
+      });
+    } catch {
+      setErrorMsg('Failed to delete notification.');
+    } finally {
+      setDeleting(null);
+    }
+  }
 
   async function markRead(id: string) {
     setMarking(id);
@@ -100,26 +117,44 @@ export default function NotificationsPage() {
                 {!n.readAt && <span style={{ marginLeft: 8, color: '#3b82f6', fontWeight: 600 }}>● Unread</span>}
               </div>
             </div>
-            {!n.readAt && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6, flexShrink: 0 }}>
+              {!n.readAt && (
+                <button
+                  onClick={(e) => { e.stopPropagation(); markRead(n._id); }}
+                  disabled={marking === n._id}
+                  style={{
+                    padding: '6px 12px',
+                    borderRadius: 8,
+                    background: marking === n._id ? '#e5e7eb' : '#f3f4f6',
+                    color: marking === n._id ? '#9ca3af' : '#374151',
+                    fontWeight: 600,
+                    border: '1px solid #e5e7eb',
+                    cursor: marking === n._id ? 'not-allowed' : 'pointer',
+                    fontSize: 12,
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  {marking === n._id ? '...' : 'Mark as read'}
+                </button>
+              )}
               <button
-                onClick={(e) => { e.stopPropagation(); markRead(n._id); }}
-                disabled={marking === n._id}
+                onClick={(e) => { e.stopPropagation(); deleteNotification(n._id); }}
+                disabled={deleting === n._id}
                 style={{
-                  flexShrink: 0,
                   padding: '6px 12px',
                   borderRadius: 8,
-                  background: marking === n._id ? '#e5e7eb' : '#f3f4f6',
-                  color: marking === n._id ? '#9ca3af' : '#374151',
+                  background: deleting === n._id ? '#e5e7eb' : '#f3f4f6',
+                  color: deleting === n._id ? '#9ca3af' : '#6b7280',
                   fontWeight: 600,
                   border: '1px solid #e5e7eb',
-                  cursor: marking === n._id ? 'not-allowed' : 'pointer',
+                  cursor: deleting === n._id ? 'not-allowed' : 'pointer',
                   fontSize: 12,
                   whiteSpace: 'nowrap',
                 }}
               >
-                {marking === n._id ? '...' : 'Mark as read'}
+                {deleting === n._id ? '...' : 'Delete'}
               </button>
-            )}
+            </div>
           </div>
         ))}
       </div>

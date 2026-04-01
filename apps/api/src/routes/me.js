@@ -34,4 +34,27 @@ router.get('/incoming-requests', requireAuth, async (req, res) => {
   }
 });
 
+// GET /me/history
+router.get('/history', requireAuth, async (req, res) => {
+  try {
+    const now = new Date();
+
+    const hostedMembers = await SessionMember.find({ userId: req.user.sub, role: 'HOST' }).lean();
+    const hostedIds = hostedMembers.map((m) => m.sessionId);
+    const hostedPast = await Session.find({ _id: { $in: hostedIds }, endAt: { $lt: now } })
+      .sort({ endAt: -1 })
+      .lean();
+
+    const joinedMembers = await SessionMember.find({ userId: req.user.sub, role: 'MEMBER' }).lean();
+    const joinedIds = joinedMembers.map((m) => m.sessionId);
+    const joinedPast = await Session.find({ _id: { $in: joinedIds }, endAt: { $lt: now } })
+      .sort({ endAt: -1 })
+      .lean();
+
+    res.json({ hostedPast, joinedPast });
+  } catch (err) {
+    res.status(500).json({ error: { code: 'SERVER_ERROR', message: err.message } });
+  }
+});
+
 module.exports = router;

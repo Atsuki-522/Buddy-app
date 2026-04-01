@@ -232,14 +232,14 @@ export default function SessionDetailPage() {
               <div style={{ display: 'flex', gap: 8 }}>
                 <button
                   onClick={() => setEditMode(true)}
-                  style={{ padding: '5px 14px', borderRadius: 6, background: '#2563eb', color: '#fff', fontWeight: 600, border: 'none', cursor: 'pointer', fontSize: 13 }}
+                  style={{ padding: '5px 14px', borderRadius: 6, background: '#111827', color: '#fff', fontWeight: 600, border: 'none', cursor: 'pointer', fontSize: 13 }}
                 >
                   Edit
                 </button>
                 <button
                   onClick={handleDelete}
                   disabled={deleteLoading}
-                  style={{ padding: '5px 14px', borderRadius: 6, background: deleteLoading ? '#9ca3af' : '#ef4444', color: '#fff', fontWeight: 600, border: 'none', cursor: deleteLoading ? 'not-allowed' : 'pointer', fontSize: 13 }}
+                  style={{ padding: '5px 14px', borderRadius: 6, background: deleteLoading ? '#d1d5db' : '#6b7280', color: '#fff', fontWeight: 600, border: 'none', cursor: deleteLoading ? 'not-allowed' : 'pointer', fontSize: 13 }}
                 >
                   {deleteLoading ? 'Deleting...' : 'Delete'}
                 </button>
@@ -263,6 +263,7 @@ export default function SessionDetailPage() {
                 <label style={labelStyle}>Start</label>
                 <input
                   type="datetime-local"
+                  lang="en"
                   value={editFields.startAt}
                   onChange={(e) => setEditFields((p) => ({ ...p, startAt: e.target.value }))}
                   style={{ display: 'block', marginTop: 4, padding: '7px 10px', border: '1px solid #d1d5db', borderRadius: 6, fontSize: 14 }}
@@ -272,6 +273,7 @@ export default function SessionDetailPage() {
                 <label style={labelStyle}>End</label>
                 <input
                   type="datetime-local"
+                  lang="en"
                   value={editFields.endAt}
                   onChange={(e) => setEditFields((p) => ({ ...p, endAt: e.target.value }))}
                   style={{ display: 'block', marginTop: 4, padding: '7px 10px', border: '1px solid #d1d5db', borderRadius: 6, fontSize: 14 }}
@@ -394,13 +396,13 @@ export default function SessionDetailPage() {
                   </div>
                   <button
                     onClick={() => handleAction(r._id, 'approve')}
-                    style={{ padding: '5px 12px', borderRadius: 6, background: '#16a34a', color: '#fff', fontWeight: 600, border: 'none', cursor: 'pointer', fontSize: 13 }}
+                    style={{ padding: '5px 12px', borderRadius: 6, background: '#111827', color: '#fff', fontWeight: 600, border: 'none', cursor: 'pointer', fontSize: 13 }}
                   >
                     Approve
                   </button>
                   <button
                     onClick={() => handleAction(r._id, 'deny')}
-                    style={{ padding: '5px 12px', borderRadius: 6, background: '#ef4444', color: '#fff', fontWeight: 600, border: 'none', cursor: 'pointer', fontSize: 13 }}
+                    style={{ padding: '5px 12px', borderRadius: 6, background: '#6b7280', color: '#fff', fontWeight: 600, border: 'none', cursor: 'pointer', fontSize: 13 }}
                   >
                     Deny
                   </button>

@@ -5,17 +5,30 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { apiFetch } from '@/lib/api';
 
+declare global {
+  interface Window {
+    cloudinary: {
+      openUploadWidget: (
+        options: object,
+        cb: (error: unknown, result: { event: string; info: { secure_url: string } }) => void
+      ) => void;
+    };
+  }
+}
+
 type User = {
   _id: string;
   displayName: string;
   email: string;
   reliabilityScore: number;
+  photoUrl?: string | null;
 };
 
 type Session = {
   _id: string;
   title: string;
   startAt: string;
+  endAt: string;
   status: string;
 };
 
@@ -40,6 +53,9 @@ function byClosest<T extends { startAt: string }>(items: T[]): T[] {
   return [...items].sort((a, b) =>
     Math.abs(new Date(a.startAt).getTime() - now) - Math.abs(new Date(b.startAt).getTime() - now)
   );
+}
+function upcoming(items: Session[]): Session[] {
+  return items.filter((s) => new Date(s.endAt).getTime() >= now);
 }
 function pendingByClosest(items: PendingRequest[]): PendingRequest[] {
   return [...items].sort((a, b) => {
@@ -66,8 +82,47 @@ export default function MePage() {
   const [pending, setPending] = useState<PendingRequest[]>([]);
   const [incoming, setIncoming] = useState<IncomingRequest[]>([]);
   const [incomingError, setIncomingError] = useState('');
+  const [hostedPast, setHostedPast] = useState<Session[]>([]);
+  const [joinedPast, setJoinedPast] = useState<Session[]>([]);
+  const [photoUrl, setPhotoUrl] = useState<string | null>(null);
+  const [uploadError, setUploadError] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
   const [deleteError, setDeleteError] = useState('');
+
+  useEffect(() => {
+    const script = document.createElement('script');
+    script.src = 'https://upload-widget.cloudinary.com/global/all.js';
+    script.async = true;
+    document.body.appendChild(script);
+    return () => { document.body.removeChild(script); };
+  }, []);
+
+  function handleUpload() {
+    setUploadError('');
+    window.cloudinary.openUploadWidget(
+      {
+        cloudName: process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME,
+        uploadPreset: process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET,
+        sources: ['local'],
+        multiple: false,
+        cropping: true,
+        croppingAspectRatio: 1,
+        folder: 'profiles',
+      },
+      async (error, result) => {
+        if (error) { setUploadError('Upload failed.'); return; }
+        if (result.event === 'success') {
+          const url = result.info.secure_url;
+          try {
+            await apiFetch('/auth/profile', { method: 'PATCH', body: { photoUrl: url } });
+            setPhotoUrl(url);
+          } catch {
+            setUploadError('Failed to save photo.');
+          }
+        }
+      }
+    );
+  }
 
   async function handleDeleteHosted(id: string) {
     if (!confirm('Delete this session? This cannot be undone.')) return;
@@ -97,13 +152,17 @@ export default function MePage() {
       apiFetch<{ items: Session[] }>('/sessions/mine?role=MEMBER'),
       apiFetch<{ items: PendingRequest[] }>('/join-requests/mine'),
       apiFetch<{ items: IncomingRequest[] }>('/me/incoming-requests'),
+      apiFetch<{ hostedPast: Session[]; joinedPast: Session[] }>('/me/history'),
     ])
-      .then(([meRes, hostedRes, joinedRes, pendingRes, incomingRes]) => {
+      .then(([meRes, hostedRes, joinedRes, pendingRes, incomingRes, historyRes]) => {
         setUser(meRes.user);
+        setPhotoUrl(meRes.user.photoUrl ?? null);
         setHosted(hostedRes.items);
         setJoined(joinedRes.items);
         setPending(pendingRes.items);
         setIncoming(incomingRes.items);
+        setHostedPast(historyRes.hostedPast);
+        setJoinedPast(historyRes.joinedPast);
       })
       .catch(() => setErrorMsg('Failed to load account data. Please log in.'));
   }, []);
@@ -138,23 +197,45 @@ export default function MePage() {
         }
       `}</style>
 
-      <div style={{ paddingBottom: 20, borderBottom: '1px solid #e5e7eb' }}>
-        <h1 style={{ fontSize: 20, fontWeight: 700, marginBottom: 2 }}>{user.displayName}</h1>
-        <p style={{ fontSize: 13, color: '#6b7280', marginBottom: 2 }}>{user.email}</p>
-        <p style={{ fontSize: 13, color: '#6b7280' }}>Reliability score: <strong style={{ color: '#374151' }}>{user.reliabilityScore}</strong></p>
+      <div style={{ paddingBottom: 20, borderBottom: '1px solid #e5e7eb', display: 'flex', alignItems: 'center', gap: 20 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+          {photoUrl ? (
+            <img
+              src={photoUrl}
+              alt="Profile"
+              style={{ width: 72, height: 72, borderRadius: '50%', objectFit: 'cover', border: '2px solid #e5e7eb' }}
+            />
+          ) : (
+            <div style={{ width: 72, height: 72, borderRadius: '50%', background: '#f3f4f6', border: '2px solid #e5e7eb', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 26, fontWeight: 700, color: '#9ca3af' }}>
+              {user.displayName.charAt(0).toUpperCase()}
+            </div>
+          )}
+          <button
+            onClick={handleUpload}
+            style={{ fontSize: 11, padding: '3px 10px', borderRadius: 6, border: '1px solid #d1d5db', background: '#fff', color: '#374151', cursor: 'pointer', fontWeight: 500 }}
+          >
+            {photoUrl ? 'Change' : 'Add photo'}
+          </button>
+          {uploadError && <p style={{ fontSize: 11, color: '#ef4444', margin: 0 }}>{uploadError}</p>}
+        </div>
+        <div>
+          <h1 style={{ fontSize: 20, fontWeight: 700, marginBottom: 2 }}>{user.displayName}</h1>
+          <p style={{ fontSize: 13, color: '#6b7280', marginBottom: 2 }}>{user.email}</p>
+          <p style={{ fontSize: 13, color: '#6b7280' }}>Reliability score: <strong style={{ color: '#374151' }}>{user.reliabilityScore}</strong></p>
+        </div>
       </div>
 
       <div className="me-grid">
         {/* Hosted sessions */}
         <div>
           <p style={{ fontSize: 11, fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 10 }}>
-            Hosted · {hosted.length}
+            Hosted · {upcoming(hosted).length}
           </p>
           {deleteError && <p style={{ color: '#ef4444', fontSize: 13, marginBottom: 8 }}>{deleteError}</p>}
-          {hosted.length === 0 ? (
-            <p style={emptyStyle}>No hosted sessions yet.</p>
+          {upcoming(hosted).length === 0 ? (
+            <p style={emptyStyle}>No upcoming hosted sessions.</p>
           ) : (
-            byClosest(hosted).map((s) => (
+            byClosest(upcoming(hosted)).map((s) => (
               <div key={s._id} style={{ ...itemStyle, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <Link href={`/sessions/${s._id}`} style={{ textDecoration: 'none', color: 'inherit', flex: 1, minWidth: 0 }}>
                   <div style={{ fontSize: 14, fontWeight: 500, color: '#111827' }}>{s.title}</div>
@@ -203,12 +284,12 @@ export default function MePage() {
         {/* Joined sessions */}
         <div>
           <p style={{ fontSize: 11, fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 10 }}>
-            Joined · {joined.length}
+            Joined · {upcoming(joined).length}
           </p>
-          {joined.length === 0 ? (
-            <p style={emptyStyle}>No joined sessions yet.</p>
+          {upcoming(joined).length === 0 ? (
+            <p style={emptyStyle}>No upcoming joined sessions.</p>
           ) : (
-            byClosest(joined).map((s) => (
+            byClosest(upcoming(joined)).map((s) => (
               <Link key={s._id} href={`/sessions/${s._id}`} style={itemStyle}>
                 <div style={{ fontSize: 14, fontWeight: 500, color: '#111827' }}>{s.title}</div>
                 <div style={{ fontSize: 12, color: '#9ca3af', marginTop: 2 }}>
@@ -253,6 +334,60 @@ export default function MePage() {
             </div>
           ))
         )}
+      </div>
+
+      {/* Past sessions */}
+      <div style={{ marginTop: 32, paddingTop: 24, borderTop: '1px solid #e5e7eb' }}>
+        <style>{`
+          .history-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 32px;
+            margin-top: 16px;
+          }
+          @media (min-width: 640px) {
+            .history-grid { grid-template-columns: 1fr 1fr; }
+          }
+        `}</style>
+        <p style={{ fontSize: 11, fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: 1 }}>
+          History
+        </p>
+        <div className="history-grid">
+          <div>
+            <p style={{ fontSize: 11, fontWeight: 600, color: '#d1d5db', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>
+              Hosted past · {hostedPast.length}
+            </p>
+            {hostedPast.length === 0 ? (
+              <p style={emptyStyle}>No past hosted sessions.</p>
+            ) : (
+              hostedPast.map((s) => (
+                <Link key={s._id} href={`/sessions/${s._id}`} style={itemStyle}>
+                  <div style={{ fontSize: 14, fontWeight: 500, color: '#6b7280' }}>{s.title}</div>
+                  <div style={{ fontSize: 12, color: '#9ca3af', marginTop: 2 }}>
+                    {new Date(s.endAt).toLocaleString('en-CA', { dateStyle: 'medium', timeStyle: 'short' })} · {s.status}
+                  </div>
+                </Link>
+              ))
+            )}
+          </div>
+          <div>
+            <p style={{ fontSize: 11, fontWeight: 600, color: '#d1d5db', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>
+              Joined past · {joinedPast.length}
+            </p>
+            {joinedPast.length === 0 ? (
+              <p style={emptyStyle}>No past joined sessions.</p>
+            ) : (
+              joinedPast.map((s) => (
+                <Link key={s._id} href={`/sessions/${s._id}`} style={itemStyle}>
+                  <div style={{ fontSize: 14, fontWeight: 500, color: '#6b7280' }}>{s.title}</div>
+                  <div style={{ fontSize: 12, color: '#9ca3af', marginTop: 2 }}>
+                    {new Date(s.endAt).toLocaleString('en-CA', { dateStyle: 'medium', timeStyle: 'short' })} · {s.status}
+                  </div>
+                </Link>
+              ))
+            )}
+          </div>
+        </div>
       </div>
     </main>
   );

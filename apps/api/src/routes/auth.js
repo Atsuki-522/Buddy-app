@@ -46,6 +46,20 @@ router.post('/login', async (req, res) => {
   }
 });
 
+// PATCH /auth/profile
+router.patch('/profile', requireAuth, async (req, res) => {
+  try {
+    const { photoUrl } = req.body;
+    const update = {};
+    if (photoUrl !== undefined) update.photoUrl = photoUrl;
+    const user = await User.findByIdAndUpdate(req.user.sub, { $set: update }, { new: true }).select('-passwordHash');
+    if (!user) return res.status(404).json({ error: { code: 'NOT_FOUND', message: 'User not found' } });
+    res.json({ user });
+  } catch (err) {
+    res.status(500).json({ error: { code: 'SERVER_ERROR', message: err.message } });
+  }
+});
+
 // GET /auth/me
 router.get('/me', requireAuth, async (req, res) => {
   try {

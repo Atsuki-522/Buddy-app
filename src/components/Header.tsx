@@ -15,16 +15,18 @@ const NAV_LINKS = [
 export default function Header() {
   const pathname = usePathname();
   const [displayName, setDisplayName] = useState<string | null>(null);
+  const [photoUrl, setPhotoUrl] = useState<string | null>(null);
   const [unreadCount, setUnreadCount] = useState(0);
 
   useEffect(() => {
     if (!getToken()) {
       setDisplayName(null);
+      setPhotoUrl(null);
       setUnreadCount(0);
       return;
     }
-    apiFetch<{ user: { displayName: string } }>('/auth/me')
-      .then((res) => setDisplayName(res.user.displayName))
+    apiFetch<{ user: { displayName: string; photoUrl?: string | null } }>('/auth/me')
+      .then((res) => { setDisplayName(res.user.displayName); setPhotoUrl(res.user.photoUrl ?? null); })
       .catch(() => setDisplayName(null));
     apiFetch<{ count: number }>('/notifications/unread-count')
       .then((res) => setUnreadCount(res.count))
@@ -82,7 +84,7 @@ export default function Header() {
                     height: 16,
                     padding: '0 4px',
                     borderRadius: 8,
-                    background: '#ef4444',
+                    background: '#f87171',
                     color: '#fff',
                     fontSize: 10,
                     fontWeight: 700,
@@ -99,21 +101,28 @@ export default function Header() {
             <Link
               href="/me"
               style={{
-                padding: '6px 12px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 7,
+                padding: '4px 10px 4px 4px',
                 borderRadius: 8,
                 fontSize: 14,
-                fontWeight: pathname === '/me' ? 600 : 400,
-                color: pathname === '/me' ? '#111827' : '#6b7280',
-                background: pathname === '/me' ? '#f3f4f6' : 'transparent',
+                fontWeight: pathname === '/me' ? 600 : 500,
+                color: pathname === '/me' ? '#111827' : '#374151',
+                background: pathname === '/me' ? '#e5e7eb' : '#f3f4f6',
                 textDecoration: 'none',
                 transition: 'background 0.1s',
-                maxWidth: 140,
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                whiteSpace: 'nowrap',
+                maxWidth: 160,
               }}
             >
-              {displayName}
+              {photoUrl ? (
+                <img src={photoUrl} alt="" style={{ width: 26, height: 26, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} />
+              ) : (
+                <div style={{ width: 26, height: 26, borderRadius: '50%', background: '#d1d5db', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, color: '#6b7280', flexShrink: 0 }}>
+                  {displayName.charAt(0).toUpperCase()}
+                </div>
+              )}
+              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{displayName}</span>
             </Link>
           ) : (
             <Link
