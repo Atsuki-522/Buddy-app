@@ -29,8 +29,12 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
         style={{ margin: 0, background: '#f9fafb', minHeight: '100vh' }}
       >
+        <style>{`
+          .page-content { max-width: 720px; margin: 0 auto; padding: 24px; }
+          @media (max-width: 640px) { .page-content { padding: 16px 12px; } }
+        `}</style>
         <Header />
-        <div style={{ maxWidth: 720, margin: '0 auto', padding: '24px 24px' }}>
+        <div className="page-content">
           {children}
         </div>
       </body>

@@ -54,7 +54,11 @@ export default function RegisterPage() {
 
   return (
     <main style={{ maxWidth: 400, paddingTop: 40 }}>
-      <div style={{ background: '#fff', borderRadius: 16, border: '1px solid #e5e7eb', boxShadow: '0 2px 8px rgba(0,0,0,0.08)', padding: '32px 32px' }}>
+      <style>{`
+        .auth-card { padding: 32px; }
+        @media (max-width: 640px) { .auth-card { padding: 24px 20px; } }
+      `}</style>
+      <div className="auth-card" style={{ background: '#fff', borderRadius: 16, border: '1px solid #e5e7eb', boxShadow: '0 2px 8px rgba(0,0,0,0.08)' }}>
         <h1 style={{ fontSize: 20, fontWeight: 700, marginBottom: 24, color: '#111827' }}>Create an account</h1>
 
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>

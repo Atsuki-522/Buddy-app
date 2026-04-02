@@ -4,6 +4,9 @@ import { useState } from 'react';
 import dynamic from 'next/dynamic';
 import { useRouter } from 'next/navigation';
 import { apiFetch } from '@/lib/api';
+import DatePicker from 'react-datepicker';
+import { enUS } from 'date-fns/locale';
+import 'react-datepicker/dist/react-datepicker.css';
 
 const PinMap = dynamic(() => import('@/components/PinMap'), { ssr: false });
 
@@ -39,8 +42,8 @@ async function geocode(query: string): Promise<{ lat: number; lng: number } | nu
 export default function NewSessionPage() {
   const router = useRouter();
   const [title, setTitle] = useState('');
-  const [startAt, setStartAt] = useState('');
-  const [endAt, setEndAt] = useState('');
+  const [startAt, setStartAt] = useState<Date | null>(null);
+  const [endAt, setEndAt] = useState<Date | null>(null);
   const [locationText, setLocationText] = useState('');
   const [publicAreaLabel, setPublicAreaLabel] = useState('');
   const [requiresApproval, setRequiresApproval] = useState(true);
@@ -114,6 +117,12 @@ export default function NewSessionPage() {
       setLng(resolvedLng);
     }
 
+    if (!startAt || !endAt) {
+      setErrorMsg('Start and end times are required.');
+      setLoading(false);
+      return;
+    }
+
     if (resolvedLat == null || resolvedLng == null) {
       setErrorMsg('Enter a location or use your current location.');
       setLoading(false);
@@ -127,8 +136,8 @@ export default function NewSessionPage() {
         method: 'POST',
         body: {
           title,
-          startAt: new Date(startAt).toISOString(),
-          endAt: new Date(endAt).toISOString(),
+          startAt: startAt.toISOString(),
+          endAt: endAt.toISOString(),
           publicAreaLabel: areaLabel,
           requiresApproval,
           publicLocation: { lng: resolvedLng, lat: resolvedLat },
@@ -151,23 +160,48 @@ export default function NewSessionPage() {
 
   return (
     <main style={{ maxWidth: 520 }}>
+      <style>{`
+        .new-session-dates { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+        @media (max-width: 640px) { .new-session-dates { grid-template-columns: 1fr; } }
+        .new-session-card { padding: 28px; }
+        @media (max-width: 640px) { .new-session-card { padding: 20px 16px; } }
+      `}</style>
       <h1 style={{ fontSize: 20, fontWeight: 700, marginBottom: 20, color: '#111827' }}>Create Session</h1>
 
-      <div style={{ background: '#fff', borderRadius: 16, border: '1px solid #e5e7eb', boxShadow: '0 2px 8px rgba(0,0,0,0.08)', padding: '28px 28px' }}>
+      <div className="new-session-card" style={{ background: '#fff', borderRadius: 16, border: '1px solid #e5e7eb', boxShadow: '0 2px 8px rgba(0,0,0,0.08)' }}>
         <form onSubmit={handleSubmit} style={{ display: 'grid', gap: 16 }}>
           <label style={labelStyle}>
             Title *
             <input required value={title} onChange={(e) => setTitle(e.target.value)} style={inputStyle} />
           </label>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+          <div className="new-session-dates">
             <label style={labelStyle}>
               Start
-              <input required type="datetime-local" lang="en" value={startAt} onChange={(e) => setStartAt(e.target.value)} style={inputStyle} />
+              <DatePicker
+                selected={startAt}
+                onChange={(date) => setStartAt(date)}
+                showTimeSelect
+                timeIntervals={15}
+                dateFormat="MMM d, yyyy h:mm aa"
+                locale={enUS}
+                placeholderText="Select date & time"
+                customInput={<input style={inputStyle} />}
+              />
             </label>
             <label style={labelStyle}>
               End
-              <input required type="datetime-local" lang="en" value={endAt} onChange={(e) => setEndAt(e.target.value)} style={inputStyle} />
+              <DatePicker
+                selected={endAt}
+                onChange={(date) => setEndAt(date)}
+                showTimeSelect
+                timeIntervals={15}
+                dateFormat="MMM d, yyyy h:mm aa"
+                locale={enUS}
+                placeholderText="Select date & time"
+                minDate={startAt ?? undefined}
+                customInput={<input style={inputStyle} />}
+              />
             </label>
           </div>
 
