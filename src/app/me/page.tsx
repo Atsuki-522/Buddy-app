@@ -246,13 +246,13 @@ export default function MePage() {
                 <div style={{ display: 'flex', gap: 6, marginLeft: 10, flexShrink: 0 }}>
                   <button
                     onClick={() => router.push(`/sessions/${s._id}`)}
-                    style={{ padding: '3px 10px', borderRadius: 5, background: '#2563eb', color: '#fff', fontWeight: 600, border: 'none', cursor: 'pointer', fontSize: 12 }}
+                    style={{ padding: '3px 10px', borderRadius: 5, background: '#111827', color: '#fff', fontWeight: 600, border: 'none', cursor: 'pointer', fontSize: 12 }}
                   >
                     Edit
                   </button>
                   <button
                     onClick={() => handleDeleteHosted(s._id)}
-                    style={{ padding: '3px 10px', borderRadius: 5, background: '#ef4444', color: '#fff', fontWeight: 600, border: 'none', cursor: 'pointer', fontSize: 12 }}
+                    style={{ padding: '3px 10px', borderRadius: 5, background: '#6b7280', color: '#fff', fontWeight: 600, border: 'none', cursor: 'pointer', fontSize: 12 }}
                   >
                     Delete
                   </button>
@@ -321,13 +321,13 @@ export default function MePage() {
               </div>
               <button
                 onClick={() => handleIncomingAction(r._id, 'approve')}
-                style={{ padding: '4px 12px', borderRadius: 6, background: '#16a34a', color: '#fff', fontWeight: 600, border: 'none', cursor: 'pointer', fontSize: 13, flexShrink: 0 }}
+                style={{ padding: '4px 12px', borderRadius: 6, background: '#111827', color: '#fff', fontWeight: 600, border: 'none', cursor: 'pointer', fontSize: 13, flexShrink: 0 }}
               >
                 Approve
               </button>
               <button
                 onClick={() => handleIncomingAction(r._id, 'deny')}
-                style={{ padding: '4px 12px', borderRadius: 6, background: '#ef4444', color: '#fff', fontWeight: 600, border: 'none', cursor: 'pointer', fontSize: 13, flexShrink: 0 }}
+                style={{ padding: '4px 12px', borderRadius: 6, background: '#6b7280', color: '#fff', fontWeight: 600, border: 'none', cursor: 'pointer', fontSize: 13, flexShrink: 0 }}
               >
                 Deny
               </button>

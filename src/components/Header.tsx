@@ -34,115 +34,116 @@ export default function Header() {
   }, [pathname]);
 
   return (
-    <header style={{
-      position: 'sticky',
-      top: 0,
-      zIndex: 100,
-      background: '#fff',
-      borderBottom: '1px solid #e5e7eb',
-    }}>
-      <div style={{
-        maxWidth: 720,
-        margin: '0 auto',
-        padding: '0 24px',
-        height: 56,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
+    <>
+      <style>{`
+        .hdr-inner { max-width: 720px; margin: 0 auto; padding: 0 24px; height: 56px; display: flex; align-items: center; justify-content: space-between; }
+        .hdr-navlink { position: relative; padding: 6px 12px !important; border-radius: 8px; font-size: 14px !important; text-decoration: none; transition: background 0.1s; }
+        .hdr-notif-label { display: inline; }
+        .hdr-notif-icon { display: none; width: 16px; text-align: center; }
+        .hdr-user-name { display: inline; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        @media (max-width: 640px) {
+          .hdr-inner { padding: 0 12px; }
+          .hdr-navlink { padding: 5px 8px !important; font-size: 13px !important; }
+          .hdr-notif-label { display: none; }
+          .hdr-notif-icon { display: inline-block; }
+          .hdr-user-name { display: none; }
+        }
+      `}</style>
+      <header style={{
+        position: 'sticky',
+        top: 0,
+        zIndex: 100,
+        background: '#fff',
+        borderBottom: '1px solid #e5e7eb',
       }}>
-        <Link href="/" style={{ fontWeight: 800, fontSize: 16, color: '#111827', textDecoration: 'none', letterSpacing: '-0.3px' }}>
-          Event Buddy
-        </Link>
+        <div className="hdr-inner">
+          <Link href="/" style={{ fontWeight: 800, fontSize: 16, color: '#111827', textDecoration: 'none', letterSpacing: '-0.3px', flexShrink: 0 }}>
+            Event Buddy
+          </Link>
 
-        <nav style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
-          {NAV_LINKS.map(({ href, label }) => {
-            const active = pathname === href || (href !== '/' && pathname.startsWith(href) && !(href === '/sessions' && pathname.startsWith('/sessions/new')));
-            const isNotifications = href === '/notifications';
-            return (
+          <nav style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+            {NAV_LINKS.map(({ href, label }) => {
+              const active = pathname === href || (href !== '/' && pathname.startsWith(href) && !(href === '/sessions' && pathname.startsWith('/sessions/new')));
+              const isNotifications = href === '/notifications';
+              return (
+                <Link
+                  key={href}
+                  href={href}
+                  className="hdr-navlink"
+                  style={{
+                    fontWeight: active ? 600 : 400,
+                    color: active ? '#111827' : '#6b7280',
+                    background: active ? '#f3f4f6' : 'transparent',
+                  }}
+                >
+                  {isNotifications ? (
+                    <>
+                      <span className="hdr-notif-label">{label}</span>
+                      <span className="hdr-notif-icon" aria-hidden="true">●</span>
+                    </>
+                  ) : label}
+                  {isNotifications && unreadCount > 0 && (
+                    <span style={{
+                      position: 'absolute',
+                      top: 2,
+                      right: 4,
+                      minWidth: 16,
+                      height: 16,
+                      padding: '0 4px',
+                      borderRadius: 8,
+                      background: '#f87171',
+                      color: '#fff',
+                      fontSize: 10,
+                      fontWeight: 700,
+                      lineHeight: '16px',
+                      textAlign: 'center',
+                    }}>
+                      {unreadCount > 99 ? '99+' : unreadCount}
+                    </span>
+                  )}
+                </Link>
+              );
+            })}
+            {displayName ? (
               <Link
-                key={href}
-                href={href}
+                href="/me"
+                className="hdr-navlink"
                 style={{
-                  position: 'relative',
-                  padding: '6px 12px',
-                  borderRadius: 8,
-                  fontSize: 14,
-                  fontWeight: active ? 600 : 400,
-                  color: active ? '#111827' : '#6b7280',
-                  background: active ? '#f3f4f6' : 'transparent',
-                  textDecoration: 'none',
-                  transition: 'background 0.1s',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 7,
+                  padding: '4px 10px 4px 4px',
+                  fontWeight: pathname === '/me' ? 600 : 500,
+                  color: pathname === '/me' ? '#111827' : '#374151',
+                  background: pathname === '/me' ? '#e5e7eb' : '#f3f4f6',
+                  maxWidth: 160,
                 }}
               >
-                {label}
-                {isNotifications && unreadCount > 0 && (
-                  <span style={{
-                    position: 'absolute',
-                    top: 2,
-                    right: 4,
-                    minWidth: 16,
-                    height: 16,
-                    padding: '0 4px',
-                    borderRadius: 8,
-                    background: '#f87171',
-                    color: '#fff',
-                    fontSize: 10,
-                    fontWeight: 700,
-                    lineHeight: '16px',
-                    textAlign: 'center',
-                  }}>
-                    {unreadCount > 99 ? '99+' : unreadCount}
-                  </span>
+                {photoUrl ? (
+                  <img src={photoUrl} alt="" style={{ width: 26, height: 26, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} />
+                ) : (
+                  <div style={{ width: 26, height: 26, borderRadius: '50%', background: '#d1d5db', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, color: '#6b7280', flexShrink: 0 }}>
+                    {displayName.charAt(0).toUpperCase()}
+                  </div>
                 )}
+                <span className="hdr-user-name">{displayName}</span>
               </Link>
-            );
-          })}
-          {displayName ? (
-            <Link
-              href="/me"
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 7,
-                padding: '4px 10px 4px 4px',
-                borderRadius: 8,
-                fontSize: 14,
-                fontWeight: pathname === '/me' ? 600 : 500,
-                color: pathname === '/me' ? '#111827' : '#374151',
-                background: pathname === '/me' ? '#e5e7eb' : '#f3f4f6',
-                textDecoration: 'none',
-                transition: 'background 0.1s',
-                maxWidth: 160,
-              }}
-            >
-              {photoUrl ? (
-                <img src={photoUrl} alt="" style={{ width: 26, height: 26, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} />
-              ) : (
-                <div style={{ width: 26, height: 26, borderRadius: '50%', background: '#d1d5db', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, color: '#6b7280', flexShrink: 0 }}>
-                  {displayName.charAt(0).toUpperCase()}
-                </div>
-              )}
-              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{displayName}</span>
-            </Link>
-          ) : (
-            <Link
-              href="/login"
-              style={{
-                padding: '6px 12px',
-                borderRadius: 8,
-                fontSize: 14,
-                fontWeight: pathname === '/login' ? 600 : 400,
-                color: pathname === '/login' ? '#111827' : '#6b7280',
-                background: pathname === '/login' ? '#f3f4f6' : 'transparent',
-                textDecoration: 'none',
-                transition: 'background 0.1s',
-              }}
-            >
-              Login
-            </Link>
-          )}
-        </nav>
-      </div>
-    </header>
+            ) : (
+              <Link
+                href="/login"
+                className="hdr-navlink"
+                style={{
+                  fontWeight: pathname === '/login' ? 600 : 400,
+                  color: pathname === '/login' ? '#111827' : '#6b7280',
+                  background: pathname === '/login' ? '#f3f4f6' : 'transparent',
+                }}
+              >
+                Login
+              </Link>
+            )}
+          </nav>
+        </div>
+      </header>
+    </>
   );
 }

@@ -77,7 +77,12 @@ export default function NotificationsPage() {
   }
 
   return (
-    <main style={{ maxWidth: 560 }}>
+    <main>
+      <style>{`
+        .notif-card { padding: 14px 16px; border-radius: 14px; border: 1px solid #e5e7eb; background: #fff; box-shadow: 0 1px 4px rgba(0,0,0,0.06); display: flex; gap: 14px; align-items: flex-start; }
+        .notif-buttons { display: flex; flex-direction: column; gap: 6px; flex-shrink: 0; }
+        @media (max-width: 400px) { .notif-buttons button { font-size: 11px !important; padding: 5px 8px !important; } }
+      `}</style>
       <h1 style={{ fontSize: 22, fontWeight: 700, marginBottom: 4 }}>Notifications</h1>
       <p style={{ fontSize: 14, color: '#6b7280', marginBottom: 20 }}>
         {unreadCount} unread
@@ -96,15 +101,8 @@ export default function NotificationsPage() {
           <div
             key={n._id}
             onClick={() => handleCardClick(n)}
+            className="notif-card"
             style={{
-              padding: '14px 16px',
-              borderRadius: 14,
-              border: '1px solid #e5e7eb',
-              background: '#fff',
-              boxShadow: '0 1px 4px rgba(0,0,0,0.06)',
-              display: 'flex',
-              gap: 14,
-              alignItems: 'flex-start',
               borderLeft: n.readAt ? '3px solid transparent' : '3px solid #3b82f6',
               cursor: getDestination(n) ? 'pointer' : 'default',
             }}
@@ -117,7 +115,7 @@ export default function NotificationsPage() {
                 {!n.readAt && <span style={{ marginLeft: 8, color: '#3b82f6', fontWeight: 600 }}>● Unread</span>}
               </div>
             </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 6, flexShrink: 0 }}>
+            <div className="notif-buttons">
               {!n.readAt && (
                 <button
                   onClick={(e) => { e.stopPropagation(); markRead(n._id); }}
