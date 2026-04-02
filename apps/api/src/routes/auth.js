@@ -60,6 +60,29 @@ router.patch('/profile', requireAuth, async (req, res) => {
   }
 });
 
+// POST /auth/google
+router.post('/google', async (req, res) => {
+  try {
+    const { email, displayName, googleId } = req.body;
+    if (!email || !googleId) {
+      return res.status(400).json({ error: { code: 'MISSING_FIELDS', message: 'email and googleId are required' } });
+    }
+    let user = await User.findOne({ email: email.toLowerCase() });
+    if (user) {
+      if (!user.googleId) {
+        user.googleId = googleId;
+        await user.save();
+      }
+    } else {
+      user = await User.create({ email, displayName: displayName || email, googleId });
+    }
+    const token = sign({ sub: user._id, email: user.email });
+    res.json({ token, user: { id: user._id, email: user.email, displayName: user.displayName, reliabilityScore: user.reliabilityScore } });
+  } catch (err) {
+    res.status(500).json({ error: { code: 'SERVER_ERROR', message: err.message } });
+  }
+});
+
 // GET /auth/me
 router.get('/me', requireAuth, async (req, res) => {
   try {
