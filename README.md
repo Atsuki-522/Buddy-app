@@ -1,90 +1,187 @@
-# event-buddy-map
+# Event Buddy Map
 
-Next.js フロントエンド + Express REST API + MongoDB Atlas の勉強用プロジェクト。
+地域の勉強会・もくもく会を地図で探して参加申請できる Web アプリ。
+
+**Tech Stack:** Next.js 16 · Express.js · MongoDB Atlas · NextAuth.js · Leaflet · Cloudinary
 
 ---
 
-## 構成
+## 機能一覧
+
+- **セッション検索** — 現在地または住所名から半径指定で近くのセッションを地図＋リストで表示
+- **セッション作成** — タイトル・日時・場所（地図プレビュー付き）・承認設定
+- **参加申請** — 承認制／即時参加に対応、申請メッセージ送信
+- **チャット** — セッションメンバー間のリアルタイムチャット
+- **通知** — 参加申請・承認の通知、未読バッジ表示
+- **アカウント管理** — プロフィール写真（Cloudinary）、参加履歴、受信申請の管理
+- **Google ログイン** — NextAuth.js 経由の Google OAuth 2.0
+- **モバイル対応** — 375px〜のスマートフォンに対応したレスポンシブ UI
+
+---
+
+## ディレクトリ構成
 
 ```
 event-buddy-map/
-├── src/               # Next.js フロントエンド (port 3000)
-└── apps/api/          # Express API サーバー  (port 3001)
+├── src/                        # Next.js フロントエンド (port 3000)
+│   ├── app/                    # App Router ページ
+│   │   ├── sessions/           # セッション一覧・詳細・作成
+│   │   ├── me/                 # アカウントページ
+│   │   ├── notifications/      # 通知ページ
+│   │   ├── login/              # ログイン
+│   │   ├── register/           # 新規登録
+│   │   └── api/auth/           # NextAuth ルートハンドラ
+│   ├── components/             # Header, SessionsMap, PinMap 等
+│   └── lib/                    # API クライアント・認証ユーティリティ
+└── apps/api/                   # Express REST API (port 3003)
+    └── src/
+        ├── models/             # Mongoose モデル
+        ├── routes/             # API ルート
+        ├── middleware/         # JWT 認証ミドルウェア
+        └── lib/                # JWT ユーティリティ
 ```
 
 ---
 
-## API サーバー起動手順
+## セットアップ
 
-### 1. 環境変数ファイルを作成
+### 前提条件
+
+- Node.js 20+
+- MongoDB Atlas アカウント
+- Google Cloud Console OAuth クライアント（Google ログインを使う場合）
+- Cloudinary アカウント（プロフィール写真を使う場合）
+
+---
+
+### 1. リポジトリをクローン
+
+```bash
+git clone https://github.com/Atsuki-522/Buddy-app.git
+cd Buddy-app
+```
+
+---
+
+### 2. バックエンドの環境変数を設定
 
 ```bash
 cd apps/api
 cp .env.example .env
 ```
 
-`.env` を編集して以下を設定：
+`apps/api/.env` を編集：
 
 ```env
-PORT=3001
-MONGODB_URI=mongodb+srv://<USER>:<PASSWORD>@cluster0.xxxxx.mongodb.net/event-buddy?retryWrites=true&w=majority
-JWT_SECRET=your_random_secret_here
+MONGODB_URI=mongodb+srv://<USER>:<PASSWORD>@cluster0.xxxxx.mongodb.net/study-buddy-dev?retryWrites=true&w=majority&appName=Cluster0
+JWT_SECRET=<ランダムな32文字以上の文字列>
+PORT=3003
 ```
 
-> **注意**
-> - `JWT_SECRET` が未設定の場合、起動時に警告が出て認証エンドポイントが動作しません。
-> - `MONGODB_URI` が未設定の場合、`/health` 以外の DB 操作は失敗します。
-> - `.env` は `.gitignore` により **コミットされません**。
+> JWT_SECRET の生成例:
+> ```bash
+> node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+> ```
 
-### 2. 依存パッケージをインストール
+---
+
+### 3. フロントエンドの環境変数を設定
 
 ```bash
-npm install
+cd ../../   # ルートに戻る
+cp .env.local.example .env.local
 ```
 
-### 3. 起動
+`.env.local` を編集：
 
-```bash
-npm run dev    # 開発（nodemon / ホットリロード）
-npm start      # 本番
-```
+```env
+NEXT_PUBLIC_API_BASE_URL=http://localhost:3003
 
-起動ログ例：
+NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME=<Cloudinary クラウド名>
+NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET=<アップロードプリセット名>
 
-```
-Using env file: C:\...\apps\api\.env
-MONGODB_URI prefix: mongodb+srv://
-API listening on port 3001
-MongoDB connected
-Notification jobs started (interval: 60s)
-```
-
-### 4. 疎通確認
-
-```powershell
-curl.exe http://localhost:3001/health
-# → {"ok":true}
+GOOGLE_CLIENT_ID=<Google OAuth クライアントID>
+GOOGLE_CLIENT_SECRET=<Google OAuth クライアントシークレット>
+NEXTAUTH_SECRET=<ランダムな32文字以上の文字列>
+NEXTAUTH_URL=http://localhost:3000
 ```
 
 ---
 
-## エンドポイント一覧
+### 4. 依存パッケージをインストール
+
+```bash
+# フロントエンド
+npm install
+
+# バックエンド
+cd apps/api && npm install
+```
+
+---
+
+### 5. 起動
+
+**バックエンド（ターミナル1）:**
+```bash
+cd apps/api
+npm run dev
+```
+
+起動確認:
+```
+API listening on port 3003
+MongoDB connected
+Notification jobs started (interval: 60s)
+```
+
+**フロントエンド（ターミナル2）:**
+```bash
+# ルートディレクトリで
+npm run dev
+```
+
+ブラウザで `http://localhost:3000` を開く。
+
+---
+
+## Google OAuth 設定
+
+1. [Google Cloud Console](https://console.cloud.google.com) でプロジェクトを作成
+2. **API とサービス** → **OAuth 同意画面** を設定
+3. **認証情報** → **OAuth クライアント ID** を作成（ウェブアプリケーション）
+4. 承認済みリダイレクト URI に追加:
+   ```
+   http://localhost:3000/api/auth/callback/google
+   ```
+5. クライアント ID とシークレットを `.env.local` に設定
+
+> 本番環境では `http://localhost:3000/...` の代わりに本番 URL を追加してください。
+
+---
+
+## API エンドポイント一覧
 
 ### 認証 `/auth`
 
 | メソッド | パス | 認証 | 概要 |
 |---|---|---|---|
-| POST | `/auth/register` | 不要 | ユーザー登録 → JWT 返却 |
+| POST | `/auth/register` | 不要 | メール・パスワードで新規登録 |
 | POST | `/auth/login` | 不要 | ログイン → JWT 返却 |
+| POST | `/auth/google` | 不要 | Google OAuth ログイン／登録 |
 | GET  | `/auth/me` | 必須 | 自分のプロフィール取得 |
+| PATCH | `/auth/profile` | 必須 | プロフィール写真 URL 更新 |
 
 ### セッション `/sessions`
 
 | メソッド | パス | 認証 | 概要 |
 |---|---|---|---|
 | POST | `/sessions` | 必須 | セッション作成 |
-| GET  | `/sessions?lat&lng&radiusKm&startsWithinMin&limit` | 任意 | 近傍検索（$geoNear） |
+| GET  | `/sessions?lat&lng&radiusKm&startAt&startsWithinHours&limit` | 任意 | 近傍検索 |
+| GET  | `/sessions/mine?role=HOST\|MEMBER` | 必須 | 自分のセッション一覧 |
 | GET  | `/sessions/:id` | 任意 | 詳細（非メンバーは privateLocation=null） |
+| PATCH | `/sessions/:id` | 必須（host） | セッション編集 |
+| DELETE | `/sessions/:id` | 必須（host） | セッション削除 |
 
 ### 参加申請 `/join-requests`
 
@@ -92,103 +189,37 @@ curl.exe http://localhost:3001/health
 |---|---|---|---|
 | POST  | `/sessions/:id/join-requests` | 必須 | 申請作成 / 即入会 |
 | GET   | `/sessions/:id/join-requests?status=PENDING` | 必須（host） | 申請一覧 |
-| PATCH | `/join-requests/:rid/approve` | 必須（host） | 承認 → SessionMember 作成 |
+| GET   | `/join-requests/mine` | 必須 | 自分の申請一覧 |
+| PATCH | `/join-requests/:rid/approve` | 必須（host） | 承認 |
 | PATCH | `/join-requests/:rid/deny` | 必須（host） | 却下 |
-| PATCH | `/join-requests/:rid/cancel` | 必須（本人） | 取消 |
 
-### チェックイン `/sessions/:id`
+### チャット `/sessions/:id/messages`
 
 | メソッド | パス | 認証 | 概要 |
 |---|---|---|---|
-| POST | `/sessions/:id/check-in` | 必須 | チェックイン（メンバーのみ） |
-| POST | `/sessions/:id/check-out` | 必須 | チェックアウト |
+| GET  | `/sessions/:id/messages` | 必須（member） | メッセージ一覧 |
+| POST | `/sessions/:id/messages` | 必須（member） | メッセージ送信 |
 
 ### 通知 `/notifications`
 
 | メソッド | パス | 認証 | 概要 |
 |---|---|---|---|
-| GET   | `/notifications?unreadOnly=true&limit=30&before=<ISO>` | 必須 | 通知一覧 |
-| PATCH | `/notifications/:id/read` | 必須 | 既読にする |
+| GET   | `/notifications` | 必須 | 通知一覧 |
 | GET   | `/notifications/unread-count` | 必須 | 未読件数 |
+| PATCH | `/notifications/:id/read` | 必須 | 既読にする |
+| DELETE | `/notifications/:id` | 必須 | 通知を削除 |
+
+### アカウント `/me`
+
+| メソッド | パス | 認証 | 概要 |
+|---|---|---|---|
+| GET | `/me/incoming-requests` | 必須 | 受信した参加申請一覧 |
+| GET | `/me/history` | 必須 | 過去のセッション履歴 |
 
 ---
 
-## E2E テスト手順（PowerShell）
+## セキュリティ
 
-以下を上から順に実行すると一通りのフローを確認できます。
-
-```powershell
-# ===== 1. ユーザー登録 =====
-$hostRes = curl.exe -s -X POST http://localhost:3001/auth/register `
-  -H "Content-Type: application/json" `
-  -d '{"email":"host@example.com","password":"pass1234","displayName":"Host"}' | ConvertFrom-Json
-$HOST_TOKEN = $hostRes.token
-
-$memberRes = curl.exe -s -X POST http://localhost:3001/auth/register `
-  -H "Content-Type: application/json" `
-  -d '{"email":"member@example.com","password":"pass1234","displayName":"Member"}' | ConvertFrom-Json
-$MEMBER_TOKEN = $memberRes.token
-
-# ===== 2. ログイン（再取得が必要な場合） =====
-$login = curl.exe -s -X POST http://localhost:3001/auth/login `
-  -H "Content-Type: application/json" `
-  -d '{"email":"host@example.com","password":"pass1234"}' | ConvertFrom-Json
-$HOST_TOKEN = $login.token
-
-# ===== 3. セッション作成（HOST） =====
-$created = curl.exe -s -X POST http://localhost:3001/sessions `
-  -H "Content-Type: application/json" `
-  -H "Authorization: Bearer $HOST_TOKEN" `
-  -d '{
-    "title": "渋谷もくもく会",
-    "startAt": "2026-03-20T10:00:00Z",
-    "endAt": "2026-03-20T13:00:00Z",
-    "publicLocation": {"lng": 139.7016, "lat": 35.6590},
-    "publicAreaLabel": "渋谷駅周辺",
-    "requiresApproval": true,
-    "privateLocation": {"placeText": "スタバ渋谷店", "lng": 139.7020, "lat": 35.6595}
-  }' | ConvertFrom-Json
-$SID = $created.session._id
-echo "Session ID: $SID"
-
-# ===== 4. セッション一覧（近傍検索） =====
-curl.exe -s "http://localhost:3001/sessions?lat=35.6590&lng=139.7016&radiusKm=5&limit=10" `
-  | ConvertFrom-Json | ConvertTo-Json -Depth 4
-
-# ===== 5. 参加申請（MEMBER） =====
-$jr = curl.exe -s -X POST "http://localhost:3001/sessions/$SID/join-requests" `
-  -H "Content-Type: application/json" `
-  -H "Authorization: Bearer $MEMBER_TOKEN" `
-  -d '{"message": "よろしくお願いします"}' | ConvertFrom-Json
-$RID = $jr.request._id
-echo "JoinRequest ID: $RID"
-
-# ===== 6. 申請一覧確認（HOST） =====
-curl.exe -s "http://localhost:3001/sessions/$SID/join-requests" `
-  -H "Authorization: Bearer $HOST_TOKEN" | ConvertFrom-Json | ConvertTo-Json -Depth 4
-
-# ===== 7. 承認（HOST） =====
-curl.exe -s -X PATCH "http://localhost:3001/join-requests/$RID/approve" `
-  -H "Authorization: Bearer $HOST_TOKEN" | ConvertFrom-Json
-
-# ===== 8. チェックイン（MEMBER） =====
-curl.exe -s -X POST "http://localhost:3001/sessions/$SID/check-in" `
-  -H "Authorization: Bearer $MEMBER_TOKEN" | ConvertFrom-Json
-
-# ===== 9. チェックアウト（MEMBER） =====
-curl.exe -s -X POST "http://localhost:3001/sessions/$SID/check-out" `
-  -H "Authorization: Bearer $MEMBER_TOKEN" | ConvertFrom-Json
-
-# ===== 10. 通知確認（未読件数） =====
-curl.exe -s "http://localhost:3001/notifications/unread-count" `
-  -H "Authorization: Bearer $MEMBER_TOKEN" | ConvertFrom-Json
-# → { "count": 1 }  ← JOIN_REQUEST_APPROVED 通知
-
-curl.exe -s "http://localhost:3001/notifications/unread-count" `
-  -H "Authorization: Bearer $HOST_TOKEN" | ConvertFrom-Json
-# → { "count": 1 }  ← JOIN_REQUEST_NEW_FOR_HOST 通知
-
-# ===== 11. セッション詳細（メンバーは privateLocation が見える） =====
-curl.exe -s "http://localhost:3001/sessions/$SID" `
-  -H "Authorization: Bearer $MEMBER_TOKEN" | ConvertFrom-Json | ConvertTo-Json -Depth 5
-```
+- `.env` / `.env.local` は `.gitignore` により **コミットされません**
+- 本番の DB 認証情報はホスティングサービスの環境変数に設定し、ローカルには開発用 DB の認証情報のみ使用してください
+- `JWT_SECRET` と `NEXTAUTH_SECRET` は必ず強いランダム値を使用してください
