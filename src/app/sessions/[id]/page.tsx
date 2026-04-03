@@ -226,10 +226,10 @@ export default function SessionDetailPage() {
 
       {data && (
         <div style={{ marginTop: 20 }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
-            <h1 style={{ fontSize: 22, fontWeight: 700 }}>{data.session.title}</h1>
+          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, marginBottom: 20, flexWrap: 'wrap' }}>
+            <h1 style={{ fontSize: 22, fontWeight: 700, margin: 0 }}>{data.session.title}</h1>
             {data.viewer.role === 'HOST' && !editMode && (
-              <div style={{ display: 'flex', gap: 8 }}>
+              <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
                 <button
                   onClick={() => setEditMode(true)}
                   style={{ padding: '5px 14px', borderRadius: 6, background: '#111827', color: '#fff', fontWeight: 600, border: 'none', cursor: 'pointer', fontSize: 13 }}

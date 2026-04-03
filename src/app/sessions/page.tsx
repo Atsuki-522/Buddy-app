@@ -159,16 +159,28 @@ export default function SessionsPage() {
 
   return (
     <main>
+      <style>{`
+        .sessions-search-row { display: flex; gap: 8px; }
+        .sessions-results { margin-top: 20px; display: flex; gap: 16px; align-items: flex-start; flex-wrap: wrap; }
+        .sessions-list { flex: 55 1 280px; min-width: 0; }
+        .sessions-map { flex: 45 1 240px; }
+        @media (max-width: 640px) {
+          .sessions-search-row { flex-wrap: wrap; }
+          .sessions-search-row input { flex: 1 1 100%; }
+          .sessions-list { height: auto !important; }
+          .sessions-list > div { height: auto !important; overflow-y: visible !important; }
+        }
+      `}</style>
       <h1 style={{ fontSize: 22, fontWeight: 700, marginBottom: 20 }}>Find Sessions</h1>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-        <div style={{ display: 'flex', gap: 8 }}>
+        <div className="sessions-search-row">
           <input
             type="text"
             placeholder="e.g. Vancouver, BC"
             value={locationText}
             onChange={(e) => { setLocationText(e.target.value); setLat(null); setLng(null); }}
-            style={{ flex: 1, padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: 8, fontSize: 14, outline: 'none' }}
+            style={{ flex: 1, padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: 8, fontSize: 14, outline: 'none', minWidth: 0 }}
           />
           <button
             type="button"
@@ -274,10 +286,10 @@ export default function SessionsPage() {
       )}
 
       {/* 2-column layout: cards left, map right — always visible */}
-      <div style={{ marginTop: 20, display: 'flex', gap: 16, alignItems: 'flex-start', flexWrap: 'wrap' }}>
+      <div className="sessions-results">
 
         {/* Left: session cards */}
-        <div style={{ flex: '55 1 280px', minWidth: 0 }}>
+        <div className="sessions-list">
           {searchedRadius != null && (
             <div style={{ marginBottom: 10, fontSize: 13, color: '#6b7280' }}>
               <span>{items.length} session{items.length !== 1 ? 's' : ''} within {searchedRadius} km</span>
@@ -322,7 +334,7 @@ export default function SessionsPage() {
         </div>
 
         {/* Right: map — always shown */}
-        <div style={{ flex: '45 1 240px' }}>
+        <div className="sessions-map">
           <SessionsMap
             items={items}
             center={lat != null && lng != null ? [lat, lng] : null}
