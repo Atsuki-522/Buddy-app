@@ -4,6 +4,9 @@ import { useEffect, useState } from 'react';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { apiFetch } from '@/lib/api';
+import DatePicker from 'react-datepicker';
+import { enUS } from 'date-fns/locale';
+import 'react-datepicker/dist/react-datepicker.css';
 
 const SessionsMap = dynamic(() => import('@/components/SessionsMap'), { ssr: false });
 const PinMap = dynamic(() => import('@/components/PinMap'), { ssr: false });
@@ -28,7 +31,7 @@ export default function SessionsPage() {
   const [userLng, setUserLng] = useState<number | null>(null);
   const [locationText, setLocationText] = useState('');
   const [radiusKm, setRadiusKm] = useState(10);
-  const [startAt, setStartAt] = useState('');
+  const [startAt, setStartAt] = useState<Date | null>(null);
   const [withinHours, setWithinHours] = useState('');
   const [withinMin, setWithinMin] = useState('');
   const [limit, setLimit] = useState(20);
@@ -142,7 +145,7 @@ export default function SessionsPage() {
         radiusKm: String(radiusKm),
         limit: String(limit),
       });
-      if (startAt) params.set('startAt', startAt);
+      if (startAt) params.set('startAt', startAt.toISOString());
       if (withinHours) params.set('startsWithinHours', withinHours);
       if (withinMin) params.set('startsWithinMin', withinMin);
       const data = await apiFetch<{ items: SessionItem[] }>(`/sessions?${params.toString()}`, { auth: false });
@@ -238,12 +241,18 @@ export default function SessionsPage() {
 
         <label style={{ fontSize: 13 }}>
           Start at (optional)
-          <input
-            type="datetime-local"
-            lang="en"
-            value={startAt}
-            onChange={(e) => setStartAt(e.target.value)}
-            style={{ display: 'block', width: '100%', marginTop: 4, padding: '6px 8px', border: '1px solid #d1d5db', borderRadius: 6, fontSize: 14 }}
+          <DatePicker
+            selected={startAt}
+            onChange={(date) => setStartAt(date)}
+            showTimeSelect
+            timeIntervals={15}
+            dateFormat="MMM d, yyyy h:mm aa"
+            locale={enUS}
+            placeholderText="Select date & time"
+            isClearable
+            customInput={
+              <input style={{ display: 'block', width: '100%', marginTop: 4, padding: '6px 8px', border: '1px solid #d1d5db', borderRadius: 6, fontSize: 14, boxSizing: 'border-box' }} />
+            }
           />
         </label>
 
@@ -296,6 +305,7 @@ export default function SessionsPage() {
               {searchedStartAt && (
                 <span> · sorted by closest to {new Date(searchedStartAt).toLocaleString('en-CA', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
               )}
+
             </div>
           )}
           {/* Scroll wrapper — only this scrolls */}
