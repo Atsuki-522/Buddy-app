@@ -22,6 +22,7 @@ type User = {
   email: string;
   reliabilityScore: number;
   photoUrl?: string | null;
+  bio?: string;
 };
 
 type Session = {
@@ -88,6 +89,10 @@ export default function MePage() {
   const [uploadError, setUploadError] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
   const [deleteError, setDeleteError] = useState('');
+  const [bio, setBio] = useState('');
+  const [bioEdit, setBioEdit] = useState(false);
+  const [bioSaving, setBioSaving] = useState(false);
+  const [bioError, setBioError] = useState('');
 
   useEffect(() => {
     const script = document.createElement('script');
@@ -124,6 +129,19 @@ export default function MePage() {
     );
   }
 
+  async function handleSaveBio() {
+    setBioError('');
+    setBioSaving(true);
+    try {
+      await apiFetch('/auth/profile', { method: 'PATCH', body: { bio } });
+      setBioEdit(false);
+    } catch {
+      setBioError('Failed to save bio.');
+    } finally {
+      setBioSaving(false);
+    }
+  }
+
   async function handleDeleteHosted(id: string) {
     if (!confirm('Delete this session? This cannot be undone.')) return;
     setDeleteError('');
@@ -157,6 +175,7 @@ export default function MePage() {
       .then(([meRes, hostedRes, joinedRes, pendingRes, incomingRes, historyRes]) => {
         setUser(meRes.user);
         setPhotoUrl(meRes.user.photoUrl ?? null);
+        setBio(meRes.user.bio ?? '');
         setHosted(hostedRes.items);
         setJoined(joinedRes.items);
         setPending(pendingRes.items);
@@ -218,10 +237,53 @@ export default function MePage() {
           </button>
           {uploadError && <p style={{ fontSize: 11, color: '#ef4444', margin: 0 }}>{uploadError}</p>}
         </div>
-        <div>
+        <div style={{ flex: 1, minWidth: 0 }}>
           <h1 style={{ fontSize: 20, fontWeight: 700, marginBottom: 2 }}>{user.displayName}</h1>
           <p style={{ fontSize: 13, color: '#6b7280', marginBottom: 2 }}>{user.email}</p>
-          <p style={{ fontSize: 13, color: '#6b7280' }}>Reliability score: <strong style={{ color: '#374151' }}>{user.reliabilityScore}</strong></p>
+          <p style={{ fontSize: 13, color: '#6b7280', marginBottom: 8 }}>Reliability score: <strong style={{ color: '#374151' }}>{user.reliabilityScore}</strong></p>
+
+          {/* Bio */}
+          {bioEdit ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              <textarea
+                value={bio}
+                onChange={(e) => setBio(e.target.value)}
+                rows={3}
+                maxLength={200}
+                placeholder="Write a short introduction..."
+                style={{ width: '100%', padding: '8px 10px', border: '1px solid #d1d5db', borderRadius: 8, fontSize: 13, resize: 'vertical', boxSizing: 'border-box' }}
+              />
+              <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                <button
+                  onClick={handleSaveBio}
+                  disabled={bioSaving}
+                  style={{ padding: '4px 14px', borderRadius: 6, background: bioSaving ? '#9ca3af' : '#111827', color: '#fff', fontWeight: 600, border: 'none', cursor: bioSaving ? 'not-allowed' : 'pointer', fontSize: 12 }}
+                >
+                  {bioSaving ? 'Saving...' : 'Save'}
+                </button>
+                <button
+                  onClick={() => { setBioEdit(false); setBio(user.bio ?? ''); }}
+                  style={{ padding: '4px 14px', borderRadius: 6, background: '#f3f4f6', color: '#374151', fontWeight: 600, border: '1px solid #d1d5db', cursor: 'pointer', fontSize: 12 }}
+                >
+                  Cancel
+                </button>
+                <span style={{ fontSize: 11, color: '#9ca3af', marginLeft: 4 }}>{bio.length}/200</span>
+              </div>
+              {bioError && <p style={{ fontSize: 12, color: '#ef4444', margin: 0 }}>{bioError}</p>}
+            </div>
+          ) : (
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
+              <p style={{ fontSize: 13, color: bio ? '#374151' : '#9ca3af', margin: 0, flex: 1 }}>
+                {bio || 'No bio yet.'}
+              </p>
+              <button
+                onClick={() => setBioEdit(true)}
+                style={{ fontSize: 11, padding: '3px 10px', borderRadius: 6, border: '1px solid #d1d5db', background: '#fff', color: '#374151', cursor: 'pointer', fontWeight: 500, flexShrink: 0 }}
+              >
+                Edit
+              </button>
+            </div>
+          )}
         </div>
       </div>
 
