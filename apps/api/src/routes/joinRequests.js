@@ -82,7 +82,10 @@ router.get('/', requireAuth, async (req, res) => {
     }
 
     const status = req.query.status || 'PENDING';
-    const items = await JoinRequest.find({ sessionId: session._id, status }).sort({ createdAt: -1 }).lean();
+    const items = await JoinRequest.find({ sessionId: session._id, status })
+      .populate('userId', '_id displayName')
+      .sort({ createdAt: -1 })
+      .lean();
 
     res.json({ items });
   } catch (err) {
