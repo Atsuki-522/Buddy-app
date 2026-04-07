@@ -180,7 +180,7 @@ export default function NewSessionPage() {
               Start
               <DatePicker
                 selected={startAt}
-                onChange={(date) => setStartAt(date)}
+                onChange={(date: Date | null) => setStartAt(date)}
                 showTimeSelect
                 timeIntervals={15}
                 dateFormat="MMM d, yyyy h:mm aa"
@@ -193,7 +193,7 @@ export default function NewSessionPage() {
               End
               <DatePicker
                 selected={endAt}
-                onChange={(date) => setEndAt(date)}
+                onChange={(date: Date | null) => setEndAt(date)}
                 showTimeSelect
                 timeIntervals={15}
                 dateFormat="MMM d, yyyy h:mm aa"
