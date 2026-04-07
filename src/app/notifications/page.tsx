@@ -28,9 +28,15 @@ export default function NotificationsPage() {
     return null;
   }
 
-  function handleCardClick(n: Notification) {
+  async function handleCardClick(n: Notification) {
     const dest = getDestination(n);
-    if (dest) router.push(dest);
+    if (!dest) return;
+    if (!n.readAt) {
+      await apiFetch(`/notifications/${n._id}/read`, { method: 'PATCH' }).catch(() => {});
+      setItems((prev) => prev.map((item) => item._id === n._id ? { ...item, readAt: new Date().toISOString() } : item));
+      setUnreadCount((prev) => Math.max(0, prev - 1));
+    }
+    router.push(dest);
   }
 
   const load = useCallback(() => {

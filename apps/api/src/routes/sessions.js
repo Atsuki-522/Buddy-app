@@ -1,6 +1,7 @@
 const router = require('express').Router();
 const Session = require('../models/Session');
 const SessionMember = require('../models/SessionMember');
+const User = require('../models/User');
 const { requireAuth, optionalAuth } = require('../middleware/auth');
 
 // POST /sessions
@@ -165,7 +166,9 @@ router.get('/:id', optionalAuth, async (req, res) => {
       session.privateLocation = null;
     }
 
-    res.json({ session, viewer: { role: viewerRole } });
+    const host = await User.findById(session.hostUserId).select('_id displayName').lean();
+
+    res.json({ session, viewer: { role: viewerRole }, host: host ?? null });
   } catch (err) {
     res.status(500).json({ error: { code: 'SERVER_ERROR', message: err.message } });
   }

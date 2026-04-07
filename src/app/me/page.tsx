@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { signOut } from 'next-auth/react';
 import { apiFetch } from '@/lib/api';
 
 declare global {
@@ -142,6 +143,12 @@ export default function MePage() {
     }
   }
 
+  async function handleLogout() {
+    localStorage.removeItem('token');
+    await signOut({ redirect: false });
+    router.push('/login');
+  }
+
   async function handleDeleteHosted(id: string) {
     if (!confirm('Delete this session? This cannot be undone.')) return;
     setDeleteError('');
@@ -216,7 +223,13 @@ export default function MePage() {
         }
       `}</style>
 
-      <div style={{ paddingBottom: 20, borderBottom: '1px solid #e5e7eb', display: 'flex', alignItems: 'center', gap: 20 }}>
+      <div style={{ paddingBottom: 20, borderBottom: '1px solid #e5e7eb', display: 'flex', alignItems: 'center', gap: 20, position: 'relative' }}>
+        <button
+          onClick={handleLogout}
+          style={{ position: 'absolute', top: 0, right: 0, padding: '5px 14px', borderRadius: 6, background: '#f3f4f6', color: '#374151', fontWeight: 600, border: '1px solid #d1d5db', cursor: 'pointer', fontSize: 12 }}
+        >
+          Log out
+        </button>
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, flexShrink: 0 }}>
           {photoUrl ? (
             <img

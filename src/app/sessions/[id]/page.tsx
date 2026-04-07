@@ -19,11 +19,12 @@ type Session = {
 type DetailResponse = {
   session: Session;
   viewer: { role: string | null };
+  host: { _id: string; displayName: string } | null;
 };
 
 type JoinRequest = {
   _id: string;
-  userId: string;
+  userId: { _id: string; displayName: string };
   message?: string;
   status: string;
 };
@@ -227,7 +228,14 @@ export default function SessionDetailPage() {
       {data && (
         <div style={{ marginTop: 20 }}>
           <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, marginBottom: 20, flexWrap: 'wrap' }}>
-            <h1 style={{ fontSize: 22, fontWeight: 700, margin: 0 }}>{data.session.title}</h1>
+            <div>
+              <h1 style={{ fontSize: 22, fontWeight: 700, margin: 0 }}>{data.session.title}</h1>
+              {data.host && (
+                <Link href={`/users/${data.host._id}`} style={{ fontSize: 13, color: '#6b7280', textDecoration: 'none', marginTop: 4, display: 'inline-block' }}>
+                  by <span style={{ color: '#111827', textDecoration: 'underline' }}>{data.host.displayName}</span>
+                </Link>
+              )}
+            </div>
             {data.viewer.role === 'HOST' && !editMode && (
               <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
                 <button
@@ -391,8 +399,10 @@ export default function SessionDetailPage() {
               {requests.map((r) => (
                 <div key={r._id} style={{ display: 'flex', alignItems: 'flex-start', gap: 12, padding: '10px 0', borderBottom: '1px solid #f3f4f6' }}>
                   <div style={{ flex: 1, fontSize: 14 }}>
+                    <Link href={`/users/${r.userId._id}`} style={{ fontSize: 13, fontWeight: 600, color: '#111827', textDecoration: 'underline', display: 'inline-block', marginBottom: 2 }}>
+                      {r.userId.displayName}
+                    </Link>
                     <div style={{ color: '#374151' }}>{r.message || <em style={{ color: '#9ca3af' }}>No message</em>}</div>
-                    <div style={{ fontSize: 12, color: '#9ca3af', marginTop: 2 }}>{r.userId}</div>
                   </div>
                   <button
                     onClick={() => handleAction(r._id, 'approve')}
@@ -427,9 +437,9 @@ export default function SessionDetailPage() {
                     return (
                       <div key={m._id} style={{ display: 'flex', flexDirection: 'column', alignItems: isMine ? 'flex-end' : 'flex-start', marginBottom: 10 }}>
                         {!isMine && (
-                          <span style={{ fontSize: 11, fontWeight: 600, color: '#6b7280', marginBottom: 2, marginLeft: 4 }}>
+                          <Link href={`/users/${m.userId._id}`} style={{ fontSize: 11, fontWeight: 600, color: '#111827', marginBottom: 2, marginLeft: 4, textDecoration: 'underline' }}>
                             {m.userId.displayName}
-                          </span>
+                          </Link>
                         )}
                         <div style={{
                           maxWidth: '75%',

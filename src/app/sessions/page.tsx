@@ -37,7 +37,7 @@ export default function SessionsPage() {
   const [limit, setLimit] = useState(20);
   const [items, setItems] = useState<SessionItem[]>([]);
   const [searchedRadius, setSearchedRadius] = useState<number | null>(null);
-  const [searchedStartAt, setSearchedStartAt] = useState('');
+  const [searchedStartAt, setSearchedStartAt] = useState<Date | null>(null);
   const [errorMsg, setErrorMsg] = useState('');
   const [loading, setLoading] = useState(false);
   const [previewLat, setPreviewLat] = useState<number | null>(null);
@@ -164,6 +164,9 @@ export default function SessionsPage() {
     <main>
       <style>{`
         .sessions-search-row { display: flex; gap: 8px; }
+        .datepicker-startAt { display: inline-block !important; margin-top: 4px; }
+        .datepicker-startAt .react-datepicker__input-container input { padding: 6px 8px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 14px; box-sizing: border-box; outline: none; width: 200px; }
+        .react-datepicker-popper { z-index: 9999 !important; }
         .sessions-results { margin-top: 20px; display: flex; gap: 16px; align-items: flex-start; flex-wrap: wrap; }
         .sessions-list { flex: 55 1 280px; min-width: 0; }
         .sessions-map { flex: 45 1 240px; }
@@ -239,22 +242,21 @@ export default function SessionsPage() {
           </label>
         </div>
 
-        <label style={{ fontSize: 13 }}>
-          Start at (optional)
+        <div style={{ fontSize: 13 }}>
+          <div>Start at</div>
           <DatePicker
             selected={startAt}
-            onChange={(date) => setStartAt(date)}
+            onChange={(date: Date | null) => setStartAt(date)}
             showTimeSelect
             timeIntervals={15}
             dateFormat="MMM d, yyyy h:mm aa"
             locale={enUS}
             placeholderText="Select date & time"
             isClearable
-            customInput={
-              <input style={{ display: 'block', width: '100%', marginTop: 4, padding: '6px 8px', border: '1px solid #d1d5db', borderRadius: 6, fontSize: 14, boxSizing: 'border-box' }} />
-            }
+            popperPlacement="right-start"
+            wrapperClassName="datepicker-startAt"
           />
-        </label>
+        </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
           <label style={{ fontSize: 13 }}>
@@ -303,7 +305,7 @@ export default function SessionsPage() {
             <div style={{ marginBottom: 10, fontSize: 13, color: '#6b7280' }}>
               <span>{items.length} session{items.length !== 1 ? 's' : ''} within {searchedRadius} km</span>
               {searchedStartAt && (
-                <span> · sorted by closest to {new Date(searchedStartAt).toLocaleString('en-CA', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
+                <span> · sorted by closest to {searchedStartAt.toLocaleString('en-CA', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
               )}
 
             </div>
