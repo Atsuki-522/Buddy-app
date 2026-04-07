@@ -8,6 +8,7 @@ const userSchema = new mongoose.Schema(
     displayName: { type: String, required: true, trim: true },
     reliabilityScore: { type: Number, default: 50 },
     photoUrl: { type: String, default: null },
+    bio: { type: String, default: '' },
   },
   { timestamps: true }
 );

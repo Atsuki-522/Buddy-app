@@ -37,8 +37,8 @@ async function sendStartReminder30() {
       userId: m.userId,
       sessionId: session._id,
       type: 'START_REMINDER_30',
-      title: 'まもなく開始です',
-      body: `「${session.title}」が30分後に始まります`,
+      title: 'Starting soon',
+      body: `"${session.title}" starts in 30 minutes`,
       meta: {
         deeplink: `/sessions/${session._id}`,
         sessionTitle: session.title,
@@ -73,8 +73,8 @@ async function sendLateReminder10() {
       userId: m.userId,
       sessionId: session._id,
       type: 'LATE_REMINDER_10',
-      title: 'チェックインがまだです',
-      body: `「${session.title}」が10分前に始まりましたがチェックインされていません`,
+      title: 'You haven\'t checked in',
+      body: `"${session.title}" started 10 minutes ago but you haven't checked in`,
       meta: {
         deeplink: `/sessions/${session._id}`,
         sessionTitle: session.title,
