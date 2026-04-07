@@ -2,10 +2,10 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { signIn, useSession } from 'next-auth/react';
+import { signIn, signOut, useSession } from 'next-auth/react';
 import { useEffect } from 'react';
 import { apiFetch, ApiError } from '@/lib/api';
-import { setToken } from '@/lib/auth';
+import { setToken, removeToken } from '@/lib/auth';
 
 const inputStyle: React.CSSProperties = {
   display: 'block',
@@ -28,7 +28,7 @@ const labelStyle: React.CSSProperties = {
 
 export default function LoginPage() {
   const router = useRouter();
-  const { data: session } = useSession();
+  const { data: session, status } = useSession();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
@@ -36,12 +36,18 @@ export default function LoginPage() {
   const [googleLoading, setGoogleLoading] = useState(false);
 
   useEffect(() => {
+    if (status === 'loading') return;
     const s = session as unknown as { jwt?: string } | null;
-    if (s?.jwt) {
+    if (status === 'authenticated' && s?.jwt) {
       setToken(s.jwt);
-      router.push('/sessions');
+      apiFetch<{ user: unknown }>('/auth/me').then(() => {
+        router.push('/sessions');
+      }).catch(() => {
+        removeToken();
+        signOut({ redirect: false });
+      });
     }
-  }, [session, router]);
+  }, [session, status, router]);
 
   async function handleGoogleLogin() {
     setGoogleLoading(true);

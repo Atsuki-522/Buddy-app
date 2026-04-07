@@ -3,8 +3,9 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { signOut } from 'next-auth/react';
+import { signOut, useSession } from 'next-auth/react';
 import { apiFetch } from '@/lib/api';
+import { setToken } from '@/lib/auth';
 
 declare global {
   interface Window {
@@ -78,6 +79,7 @@ const emptyStyle: React.CSSProperties = { fontSize: 13, color: '#9ca3af' };
 
 export default function MePage() {
   const router = useRouter();
+  const { data: session } = useSession();
   const [user, setUser] = useState<User | null>(null);
   const [hosted, setHosted] = useState<Session[]>([]);
   const [joined, setJoined] = useState<Session[]>([]);
@@ -170,6 +172,9 @@ export default function MePage() {
   }
 
   useEffect(() => {
+    const s = session as unknown as { jwt?: string } | null;
+    if (s?.jwt) setToken(s.jwt);
+
     Promise.all([
       apiFetch<{ user: User }>('/auth/me'),
       apiFetch<{ items: Session[] }>('/sessions/mine?role=HOST'),
@@ -190,7 +195,7 @@ export default function MePage() {
         setJoinedPast(historyRes.joinedPast);
       })
       .catch(() => setErrorMsg('Failed to load account data. Please log in.'));
-  }, []);
+  }, [session]);
 
   if (errorMsg) {
     return (
