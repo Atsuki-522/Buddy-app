@@ -145,8 +145,7 @@ export default function MePage() {
 
   async function handleLogout() {
     localStorage.removeItem('token');
-    await signOut({ redirect: false });
-    router.push('/login');
+    await signOut({ callbackUrl: '/login' });
   }
 
   async function handleDeleteHosted(id: string) {
