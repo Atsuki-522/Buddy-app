@@ -36,8 +36,9 @@ export default function LoginPage() {
   const [googleLoading, setGoogleLoading] = useState(false);
 
   useEffect(() => {
-    if (session && (session as { jwt?: string }).jwt) {
-      setToken((session as { jwt: string }).jwt);
+    const s = session as unknown as { jwt?: string } | null;
+    if (s?.jwt) {
+      setToken(s.jwt);
       router.push('/sessions');
     }
   }, [session, router]);
