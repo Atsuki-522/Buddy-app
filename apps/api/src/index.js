@@ -13,8 +13,21 @@ const mongoose = require('mongoose');
 const app = express();
 const PORT = process.env.PORT || 3001;
 
+const ALLOWED_ORIGINS = [
+  /^http:\/\/localhost(:\d+)?$/,
+  /^https?:\/\/[a-z0-9-]+\.onrender\.com$/,
+  /^https:\/\/[a-z0-9-]+\.vercel\.app$/,
+  ...(process.env.ALLOWED_ORIGIN ? [process.env.ALLOWED_ORIGIN] : []),
+];
+
 app.use(cors({
-  origin: /^http:\/\/localhost(:\d+)?$/,
+  origin: (origin, callback) => {
+    if (!origin) return callback(null, true);
+    const allowed = ALLOWED_ORIGINS.some((o) =>
+      typeof o === 'string' ? o === origin : o.test(origin)
+    );
+    callback(allowed ? null : new Error('Not allowed by CORS'), allowed);
+  },
   allowedHeaders: ['Content-Type', 'Authorization'],
   methods: ['GET', 'POST', 'PATCH', 'PUT', 'DELETE', 'OPTIONS'],
   credentials: true,
