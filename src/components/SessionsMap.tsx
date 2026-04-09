@@ -10,9 +10,9 @@ import {
   useMap,
 } from 'react-leaflet';
 import L from 'leaflet';
+import { useLocale } from '@/components/LocaleProvider';
 import 'leaflet/dist/leaflet.css';
 
-// Fix default marker icons broken by webpack
 const defaultIcon = L.icon({
   iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
   iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
@@ -34,7 +34,7 @@ type SessionItem = {
     publicAreaLabel?: string;
     publicLocation: {
       type: 'Point';
-      coordinates: [number, number]; // [lng, lat]
+      coordinates: [number, number];
     };
   };
   distanceMeters: number;
@@ -42,7 +42,7 @@ type SessionItem = {
 
 type Props = {
   items: SessionItem[];
-  center?: [number, number] | null; // [lat, lng]
+  center?: [number, number] | null;
   height?: number;
 };
 
@@ -72,6 +72,7 @@ function FitBounds({ items }: { items: SessionItem[] }) {
 }
 
 export default function SessionsMap({ items, center, height = 300 }: Props) {
+  const { t, formatDateTime } = useLocale();
   const initialCenter: [number, number] = center ?? VANCOUVER;
 
   return (
@@ -94,7 +95,7 @@ export default function SessionsMap({ items, center, height = 300 }: Props) {
               <div style={{ minWidth: 160 }}>
                 <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4 }}>{session.title}</div>
                 <div style={{ fontSize: 12, color: '#6b7280', marginBottom: 2 }}>
-                  {new Date(session.startAt).toLocaleString('en-CA')}
+                  {formatDateTime(session.startAt)}
                 </div>
                 {session.publicAreaLabel && (
                   <div style={{ fontSize: 12, color: '#6b7280', marginBottom: 6 }}>
@@ -105,7 +106,7 @@ export default function SessionsMap({ items, center, height = 300 }: Props) {
                   href={`/sessions/${session._id}`}
                   style={{ fontSize: 13, color: '#3b82f6', textDecoration: 'underline' }}
                 >
-                  View details →
+                  {t('viewDetails')}
                 </Link>
               </div>
             </Popup>

@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { useLocale } from '@/components/LocaleProvider';
 import { apiFetch } from '@/lib/api';
 
 type Session = {
@@ -43,22 +44,19 @@ const valueStyle: React.CSSProperties = { fontSize: 15, marginTop: 2 };
 export default function SessionDetailPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
+  const { locale, t, formatDateTime, formatTime, statusLabel } = useLocale();
   const [data, setData] = useState<DetailResponse | null>(null);
   const [errorMsg, setErrorMsg] = useState('');
   const [joinMessage, setJoinMessage] = useState('');
   const [joinStatus, setJoinStatus] = useState<'idle' | 'success_joined' | 'success_requested'>('idle');
   const [joinError, setJoinError] = useState('');
   const [joinLoading, setJoinLoading] = useState(false);
-
-  // Edit / Delete (HOST only)
   const [editMode, setEditMode] = useState(false);
   const [editFields, setEditFields] = useState({ title: '', startAt: '', endAt: '', status: '' });
   const [editLoading, setEditLoading] = useState(false);
   const [editError, setEditError] = useState('');
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [deleteError, setDeleteError] = useState('');
-
-  // Chat
   const [myUserId, setMyUserId] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [chatLoading, setChatLoading] = useState(false);
@@ -67,6 +65,10 @@ export default function SessionDetailPage() {
   const [chatError, setChatError] = useState('');
   const [chatSending, setChatSending] = useState(false);
   const chatBottomRef = useRef<HTMLDivElement>(null);
+  const [requests, setRequests] = useState<JoinRequest[]>([]);
+  const [requestsError, setRequestsError] = useState('');
+  const [actionError, setActionError] = useState('');
+
   const isMember = (role: string | null) => role === 'HOST' || role === 'MEMBER';
 
   function loadMessages(initial = false) {
@@ -81,7 +83,7 @@ export default function SessionDetailPage() {
         if (initial) setChatLoading(false);
       })
       .catch(() => {
-        setChatFetchError('Failed to load messages.');
+        setChatFetchError(t('failedToLoadMessages'));
         if (initial) setChatLoading(false);
       });
   }
@@ -95,22 +97,17 @@ export default function SessionDetailPage() {
       setChatText('');
       loadMessages();
     } catch {
-      setChatError('Failed to send message.');
+      setChatError(t('failedToSendMessage'));
     } finally {
       setChatSending(false);
     }
   }
 
-  // HOST: pending join requests
-  const [requests, setRequests] = useState<JoinRequest[]>([]);
-  const [requestsError, setRequestsError] = useState('');
-  const [actionError, setActionError] = useState('');
-
   function loadRequests() {
     setRequestsError('');
     apiFetch<{ items: JoinRequest[] }>(`/sessions/${id}/join-requests?status=PENDING`)
       .then((res) => setRequests(res.items))
-      .catch(() => setRequestsError('Failed to load join requests.'));
+      .catch(() => setRequestsError(t('failedToLoadJoinRequests')));
   }
 
   async function handleAction(rid: string, action: 'approve' | 'deny') {
@@ -119,7 +116,7 @@ export default function SessionDetailPage() {
       await apiFetch(`/join-requests/${rid}/${action}`, { method: 'PATCH' });
       loadRequests();
     } catch {
-      setActionError(`Failed to ${action} request.`);
+      setActionError(action === 'approve' ? t('failedToApproveRequest') : t('failedToDenyRequest'));
     }
   }
 
@@ -129,7 +126,7 @@ export default function SessionDetailPage() {
     loadMessages(true);
     const timer = setInterval(() => loadMessages(), 7000);
     return () => clearInterval(timer);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data?.viewer.role]);
 
   useEffect(() => {
@@ -152,9 +149,9 @@ export default function SessionDetailPage() {
       if (code === 'UNAUTHORIZED' || code === 'INVALID_TOKEN') {
         setJoinError('401');
       } else if (code === 'ALREADY_MEMBER' || code === 'ALREADY_REQUESTED') {
-        setJoinError('Already joined or already requested.');
+        setJoinError(t('alreadyJoinedOrRequested'));
       } else {
-        setJoinError('Failed to send request.');
+        setJoinError(t('failedToSendRequest'));
       }
     } finally {
       setJoinLoading(false);
@@ -169,21 +166,21 @@ export default function SessionDetailPage() {
       setData((prev) => prev ? { ...prev, session: res.session } : prev);
       setEditMode(false);
     } catch {
-      setEditError('Failed to update session.');
+      setEditError(t('failedToUpdateSession'));
     } finally {
       setEditLoading(false);
     }
   }
 
   async function handleDelete() {
-    if (!confirm('Delete this session? This cannot be undone.')) return;
+    if (!confirm(t('deleteSessionConfirm'))) return;
     setDeleteError('');
     setDeleteLoading(true);
     try {
       await apiFetch(`/sessions/${id}`, { method: 'DELETE' });
       router.push('/me');
     } catch {
-      setDeleteError('Failed to delete session.');
+      setDeleteError(t('failedToDeleteSession'));
       setDeleteLoading(false);
     }
   }
@@ -207,14 +204,14 @@ export default function SessionDetailPage() {
       })
       .catch((err) => {
         const e = err as { error?: { message?: string } };
-        setErrorMsg(e?.error?.message ?? 'Failed to load session.');
+        setErrorMsg(e?.error?.message ?? t('failedToLoadSession'));
       });
-  }, [id]);
+  }, [id, t]);
 
   return (
     <main style={{ maxWidth: 560 }}>
       <Link href="/sessions" style={{ fontSize: 13, color: '#3b82f6', textDecoration: 'underline' }}>
-        ← Back to sessions
+        {t('backToSessions')}
       </Link>
 
       {errorMsg && (
@@ -222,7 +219,7 @@ export default function SessionDetailPage() {
       )}
 
       {!data && !errorMsg && (
-        <p style={{ marginTop: 16, color: '#6b7280' }}>Loading...</p>
+        <p style={{ marginTop: 16, color: '#6b7280' }}>{t('loading')}</p>
       )}
 
       {data && (
@@ -232,7 +229,7 @@ export default function SessionDetailPage() {
               <h1 style={{ fontSize: 22, fontWeight: 700, margin: 0 }}>{data.session.title}</h1>
               {data.host && (
                 <Link href={`/users/${data.host._id}`} style={{ fontSize: 13, color: '#6b7280', textDecoration: 'none', marginTop: 4, display: 'inline-block' }}>
-                  by <span style={{ color: '#111827', textDecoration: 'underline' }}>{data.host.displayName}</span>
+                  {t('byHost', { name: data.host.displayName })}
                 </Link>
               )}
             </div>
@@ -242,14 +239,14 @@ export default function SessionDetailPage() {
                   onClick={() => setEditMode(true)}
                   style={{ padding: '5px 14px', borderRadius: 6, background: '#111827', color: '#fff', fontWeight: 600, border: 'none', cursor: 'pointer', fontSize: 13 }}
                 >
-                  Edit
+                  {t('edit')}
                 </button>
                 <button
                   onClick={handleDelete}
                   disabled={deleteLoading}
                   style={{ padding: '5px 14px', borderRadius: 6, background: deleteLoading ? '#d1d5db' : '#6b7280', color: '#fff', fontWeight: 600, border: 'none', cursor: deleteLoading ? 'not-allowed' : 'pointer', fontSize: 13 }}
                 >
-                  {deleteLoading ? 'Deleting...' : 'Delete'}
+                  {deleteLoading ? t('deleting') : t('delete')}
                 </button>
               </div>
             )}
@@ -258,9 +255,9 @@ export default function SessionDetailPage() {
 
           {editMode && (
             <div style={{ marginBottom: 20, padding: '16px', border: '1px solid #e5e7eb', borderRadius: 8, background: '#f9fafb' }}>
-              <h2 style={{ fontSize: 15, fontWeight: 700, marginBottom: 12 }}>Edit Session</h2>
+              <h2 style={{ fontSize: 15, fontWeight: 700, marginBottom: 12 }}>{t('editSession')}</h2>
               <div style={{ marginBottom: 10 }}>
-                <label style={labelStyle}>Title</label>
+                <label style={labelStyle}>{t('title')}</label>
                 <input
                   value={editFields.title}
                   onChange={(e) => setEditFields((p) => ({ ...p, title: e.target.value }))}
@@ -268,35 +265,35 @@ export default function SessionDetailPage() {
                 />
               </div>
               <div style={{ marginBottom: 10 }}>
-                <label style={labelStyle}>Start</label>
+                <label style={labelStyle}>{t('start')}</label>
                 <input
                   type="datetime-local"
-                  lang="en"
+                  lang={locale}
                   value={editFields.startAt}
                   onChange={(e) => setEditFields((p) => ({ ...p, startAt: e.target.value }))}
                   style={{ display: 'block', marginTop: 4, padding: '7px 10px', border: '1px solid #d1d5db', borderRadius: 6, fontSize: 14 }}
                 />
               </div>
               <div style={{ marginBottom: 10 }}>
-                <label style={labelStyle}>End</label>
+                <label style={labelStyle}>{t('end')}</label>
                 <input
                   type="datetime-local"
-                  lang="en"
+                  lang={locale}
                   value={editFields.endAt}
                   onChange={(e) => setEditFields((p) => ({ ...p, endAt: e.target.value }))}
                   style={{ display: 'block', marginTop: 4, padding: '7px 10px', border: '1px solid #d1d5db', borderRadius: 6, fontSize: 14 }}
                 />
               </div>
               <div style={{ marginBottom: 14 }}>
-                <label style={labelStyle}>Status</label>
+                <label style={labelStyle}>{t('status')}</label>
                 <select
                   value={editFields.status}
                   onChange={(e) => setEditFields((p) => ({ ...p, status: e.target.value }))}
                   style={{ display: 'block', marginTop: 4, padding: '7px 10px', border: '1px solid #d1d5db', borderRadius: 6, fontSize: 14 }}
                 >
-                  <option value="OPEN">OPEN</option>
-                  <option value="CLOSED">CLOSED</option>
-                  <option value="CANCELLED">CANCELLED</option>
+                  <option value="OPEN">{statusLabel('OPEN')}</option>
+                  <option value="CLOSED">{statusLabel('CLOSED')}</option>
+                  <option value="CANCELLED">{statusLabel('CANCELLED')}</option>
                 </select>
               </div>
               {editError && <p style={{ color: '#ef4444', fontSize: 14, marginBottom: 8 }}>{editError}</p>}
@@ -306,63 +303,63 @@ export default function SessionDetailPage() {
                   disabled={editLoading}
                   style={{ padding: '7px 18px', borderRadius: 6, background: editLoading ? '#9ca3af' : '#111827', color: '#fff', fontWeight: 600, border: 'none', cursor: editLoading ? 'not-allowed' : 'pointer', fontSize: 14 }}
                 >
-                  {editLoading ? 'Saving...' : 'Save'}
+                  {editLoading ? t('saving') : t('save')}
                 </button>
                 <button
                   onClick={() => setEditMode(false)}
                   style={{ padding: '7px 18px', borderRadius: 6, background: '#f3f4f6', color: '#374151', fontWeight: 600, border: '1px solid #d1d5db', cursor: 'pointer', fontSize: 14 }}
                 >
-                  Cancel
+                  {t('cancel')}
                 </button>
               </div>
             </div>
           )}
 
           <div style={fieldStyle}>
-            <div style={labelStyle}>Start</div>
-            <div style={valueStyle}>{new Date(data.session.startAt).toLocaleString('en-CA')}</div>
+            <div style={labelStyle}>{t('start')}</div>
+            <div style={valueStyle}>{formatDateTime(data.session.startAt)}</div>
           </div>
 
           <div style={fieldStyle}>
-            <div style={labelStyle}>End</div>
-            <div style={valueStyle}>{new Date(data.session.endAt).toLocaleString('en-CA')}</div>
+            <div style={labelStyle}>{t('end')}</div>
+            <div style={valueStyle}>{formatDateTime(data.session.endAt)}</div>
           </div>
 
           {data.session.publicAreaLabel && (
             <div style={fieldStyle}>
-              <div style={labelStyle}>Area</div>
+              <div style={labelStyle}>{t('area')}</div>
               <div style={valueStyle}>{data.session.publicAreaLabel}</div>
             </div>
           )}
 
           <div style={fieldStyle}>
-            <div style={labelStyle}>Status</div>
-            <div style={valueStyle}>{data.session.status}</div>
+            <div style={labelStyle}>{t('status')}</div>
+            <div style={valueStyle}>{statusLabel(data.session.status)}</div>
           </div>
 
           <div style={fieldStyle}>
-            <div style={labelStyle}>Approval required</div>
-            <div style={valueStyle}>{data.session.requiresApproval ? 'Yes' : 'No'}</div>
+            <div style={labelStyle}>{t('approvalRequired')}</div>
+            <div style={valueStyle}>{data.session.requiresApproval ? t('yes') : t('no')}</div>
           </div>
 
           <div style={fieldStyle}>
-            <div style={labelStyle}>Your role</div>
-            <div style={valueStyle}>{data.viewer.role ?? 'Guest'}</div>
+            <div style={labelStyle}>{t('yourRole')}</div>
+            <div style={valueStyle}>{statusLabel(data.viewer.role ?? 'GUEST')}</div>
           </div>
 
           {data.viewer.role === null && (
             <div style={{ marginTop: 24, paddingTop: 20, borderTop: '1px solid #e5e7eb' }}>
-              <h2 style={{ fontSize: 16, fontWeight: 600, marginBottom: 10 }}>Join this session</h2>
+              <h2 style={{ fontSize: 16, fontWeight: 600, marginBottom: 10 }}>{t('joinThisSession')}</h2>
               {joinStatus === 'success_joined' && (
-                <p style={{ color: '#16a34a' }}>Joined successfully.</p>
+                <p style={{ color: '#16a34a' }}>{t('joinedSuccessfully')}</p>
               )}
               {joinStatus === 'success_requested' && (
-                <p style={{ color: '#2563eb' }}>Request sent.</p>
+                <p style={{ color: '#2563eb' }}>{t('requestSent')}</p>
               )}
               {joinStatus === 'idle' && (
                 <>
                   <textarea
-                    placeholder="Message (optional)"
+                    placeholder={t('messageOptional')}
                     value={joinMessage}
                     onChange={(e) => setJoinMessage(e.target.value)}
                     rows={3}
@@ -370,8 +367,8 @@ export default function SessionDetailPage() {
                   />
                   {joinError === '401' ? (
                     <p style={{ color: '#ef4444', fontSize: 14 }}>
-                      Please login to continue —{' '}
-                      <Link href="/login" style={{ color: '#3b82f6', textDecoration: 'underline' }}>Login</Link>
+                      {t('pleaseLoginToContinue')}{' '}
+                      <Link href="/login" style={{ color: '#3b82f6', textDecoration: 'underline' }}>{t('login')}</Link>
                     </p>
                   ) : joinError ? (
                     <p style={{ color: '#ef4444', fontSize: 14 }}>{joinError}</p>
@@ -381,7 +378,7 @@ export default function SessionDetailPage() {
                     disabled={joinLoading}
                     style={{ marginTop: 8, padding: '9px 18px', borderRadius: 7, background: joinLoading ? '#9ca3af' : '#111827', color: '#fff', fontWeight: 600, border: 'none', cursor: joinLoading ? 'not-allowed' : 'pointer', fontSize: 14 }}
                   >
-                    {joinLoading ? 'Sending...' : 'Request to join'}
+                    {joinLoading ? t('sending') : t('requestToJoin')}
                   </button>
                 </>
               )}
@@ -390,11 +387,11 @@ export default function SessionDetailPage() {
 
           {data.viewer.role === 'HOST' && (
             <div style={{ marginTop: 24, paddingTop: 20, borderTop: '1px solid #e5e7eb' }}>
-              <h2 style={{ fontSize: 16, fontWeight: 600, marginBottom: 12 }}>Join requests</h2>
+              <h2 style={{ fontSize: 16, fontWeight: 600, marginBottom: 12 }}>{t('joinRequests')}</h2>
               {requestsError && <p style={{ color: '#ef4444', fontSize: 14 }}>{requestsError}</p>}
               {actionError && <p style={{ color: '#ef4444', fontSize: 14 }}>{actionError}</p>}
               {requests.length === 0 && !requestsError && (
-                <p style={{ color: '#6b7280', fontSize: 14 }}>No pending requests.</p>
+                <p style={{ color: '#6b7280', fontSize: 14 }}>{t('noPendingRequests')}</p>
               )}
               {requests.map((r) => (
                 <div key={r._id} style={{ display: 'flex', alignItems: 'flex-start', gap: 12, padding: '10px 0', borderBottom: '1px solid #f3f4f6' }}>
@@ -402,19 +399,19 @@ export default function SessionDetailPage() {
                     <Link href={`/users/${r.userId._id}`} style={{ fontSize: 13, fontWeight: 600, color: '#111827', textDecoration: 'underline', display: 'inline-block', marginBottom: 2 }}>
                       {r.userId.displayName}
                     </Link>
-                    <div style={{ color: '#374151' }}>{r.message || <em style={{ color: '#9ca3af' }}>No message</em>}</div>
+                    <div style={{ color: '#374151' }}>{r.message || <em style={{ color: '#9ca3af' }}>{t('noMessage')}</em>}</div>
                   </div>
                   <button
                     onClick={() => handleAction(r._id, 'approve')}
                     style={{ padding: '5px 12px', borderRadius: 6, background: '#111827', color: '#fff', fontWeight: 600, border: 'none', cursor: 'pointer', fontSize: 13 }}
                   >
-                    Approve
+                    {t('approve')}
                   </button>
                   <button
                     onClick={() => handleAction(r._id, 'deny')}
                     style={{ padding: '5px 12px', borderRadius: 6, background: '#6b7280', color: '#fff', fontWeight: 600, border: 'none', cursor: 'pointer', fontSize: 13 }}
                   >
-                    Deny
+                    {t('deny')}
                   </button>
                 </div>
               ))}
@@ -423,14 +420,14 @@ export default function SessionDetailPage() {
 
           {isMember(data.viewer.role) && (
             <div style={{ marginTop: 24, paddingTop: 20, borderTop: '1px solid #e5e7eb' }}>
-              <h2 style={{ fontSize: 16, fontWeight: 600, marginBottom: 12 }}>Chat</h2>
+              <h2 style={{ fontSize: 16, fontWeight: 600, marginBottom: 12 }}>{t('chat')}</h2>
               <div style={{ border: '1px solid #e5e7eb', borderRadius: 8, padding: '10px 12px', minHeight: 120, maxHeight: 320, overflowY: 'auto', marginBottom: 10, background: '#f9fafb' }}>
                 {chatLoading ? (
-                  <p style={{ color: '#9ca3af', fontSize: 14 }}>Loading messages...</p>
+                  <p style={{ color: '#9ca3af', fontSize: 14 }}>{t('loadingMessages')}</p>
                 ) : chatFetchError ? (
                   <p style={{ color: '#ef4444', fontSize: 14 }}>{chatFetchError}</p>
                 ) : messages.length === 0 ? (
-                  <p style={{ color: '#9ca3af', fontSize: 14 }}>No messages yet.</p>
+                  <p style={{ color: '#9ca3af', fontSize: 14 }}>{t('noMessagesYet')}</p>
                 ) : (
                   messages.map((m) => {
                     const isMine = myUserId && m.userId._id === myUserId;
@@ -454,7 +451,7 @@ export default function SessionDetailPage() {
                           {m.text}
                         </div>
                         <span style={{ fontSize: 10, color: '#9ca3af', marginTop: 2, marginLeft: isMine ? 0 : 4, marginRight: isMine ? 4 : 0 }}>
-                          {new Date(m.createdAt).toLocaleTimeString('en-CA', { hour: '2-digit', minute: '2-digit' })}
+                          {formatTime(m.createdAt)}
                         </span>
                       </div>
                     );
@@ -474,7 +471,7 @@ export default function SessionDetailPage() {
                       handleSend();
                     }
                   }}
-                  placeholder="Type a message... (Enter to send, Shift+Enter for new line)"
+                  placeholder={t('messageInputHint')}
                   style={{ flex: 1, padding: '8px 10px', border: '1px solid #d1d5db', borderRadius: 6, fontSize: 14, resize: 'vertical' }}
                 />
                 <button
@@ -482,18 +479,18 @@ export default function SessionDetailPage() {
                   disabled={chatSending || !chatText.trim()}
                   style={{ padding: '8px 16px', borderRadius: 7, background: chatSending || !chatText.trim() ? '#9ca3af' : '#111827', color: '#fff', fontWeight: 600, border: 'none', cursor: chatSending || !chatText.trim() ? 'not-allowed' : 'pointer', fontSize: 14, alignSelf: 'flex-end' }}
                 >
-                  {chatSending ? 'Sending...' : 'Send'}
+                  {chatSending ? t('sending') : t('send')}
                 </button>
               </div>
             </div>
           )}
 
           <div style={fieldStyle}>
-            <div style={labelStyle}>Private location</div>
+            <div style={labelStyle}>{t('privateLocation')}</div>
             <div style={valueStyle}>
               {data.session.privateLocation === null
-                ? 'Private location is visible to members only.'
-                : data.session.privateLocation?.placeText ?? 'Not set'}
+                ? t('privateLocationMembersOnly')
+                : data.session.privateLocation?.placeText ?? t('notSet')}
             </div>
           </div>
         </div>

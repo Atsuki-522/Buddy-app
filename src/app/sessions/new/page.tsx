@@ -3,9 +3,9 @@
 import { useState } from 'react';
 import dynamic from 'next/dynamic';
 import { useRouter } from 'next/navigation';
+import { useLocale } from '@/components/LocaleProvider';
 import { apiFetch } from '@/lib/api';
 import DatePicker from 'react-datepicker';
-import { enUS } from 'date-fns/locale';
 import 'react-datepicker/dist/react-datepicker.css';
 
 const PinMap = dynamic(() => import('@/components/PinMap'), { ssr: false });
@@ -29,18 +29,9 @@ const labelStyle: React.CSSProperties = {
   color: '#374151',
 };
 
-async function geocode(query: string): Promise<{ lat: number; lng: number } | null> {
-  const res = await fetch(
-    `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=1`,
-    { headers: { 'Accept-Language': 'en' } }
-  );
-  const data = await res.json();
-  if (!data.length) return null;
-  return { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) };
-}
-
 export default function NewSessionPage() {
   const router = useRouter();
+  const { locale, t, datePickerLocale } = useLocale();
   const [title, setTitle] = useState('');
   const [startAt, setStartAt] = useState<Date | null>(null);
   const [endAt, setEndAt] = useState<Date | null>(null);
@@ -56,9 +47,19 @@ export default function NewSessionPage() {
   const [errorMsg, setErrorMsg] = useState('');
   const [loading, setLoading] = useState(false);
 
+  async function geocode(query: string): Promise<{ lat: number; lng: number } | null> {
+    const res = await fetch(
+      `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=1`,
+      { headers: { 'Accept-Language': locale } }
+    );
+    const data = await res.json();
+    if (!data.length) return null;
+    return { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) };
+  }
+
   function getLocation() {
     if (!navigator.geolocation) {
-      setErrorMsg('Geolocation is not supported by your browser.');
+      setErrorMsg(t('geolocationUnsupported'));
       return;
     }
     navigator.geolocation.getCurrentPosition(
@@ -71,7 +72,7 @@ export default function NewSessionPage() {
         setLocationText('');
         setErrorMsg('');
       },
-      () => setErrorMsg('Location permission denied.')
+      () => setErrorMsg(t('locationPermissionDenied'))
     );
   }
 
@@ -80,14 +81,14 @@ export default function NewSessionPage() {
     setPreviewLat(null);
     setPreviewLng(null);
     if (!locationText.trim()) {
-      setPreviewMsg('Enter a location first.');
+      setPreviewMsg(t('enterLocationFirst'));
       return;
     }
     setPreviewLoading(true);
     const result = await geocode(locationText.trim());
     setPreviewLoading(false);
     if (!result) {
-      setPreviewMsg('Could not find that location.');
+      setPreviewMsg(t('locationSearchFailed'));
       return;
     }
     setLat(result.lat);
@@ -107,7 +108,7 @@ export default function NewSessionPage() {
     if ((resolvedLat == null || resolvedLng == null) && locationText.trim()) {
       const result = await geocode(locationText.trim());
       if (!result) {
-        setErrorMsg('Could not find that location.');
+        setErrorMsg(t('locationSearchFailed'));
         setLoading(false);
         return;
       }
@@ -118,13 +119,13 @@ export default function NewSessionPage() {
     }
 
     if (!startAt || !endAt) {
-      setErrorMsg('Start and end times are required.');
+      setErrorMsg(t('startEndRequired'));
       setLoading(false);
       return;
     }
 
     if (resolvedLat == null || resolvedLng == null) {
-      setErrorMsg('Enter a location or use your current location.');
+      setErrorMsg(t('enterLocationOrCurrent'));
       setLoading(false);
       return;
     }
@@ -147,16 +148,16 @@ export default function NewSessionPage() {
     } catch (err) {
       const e = err as { error?: { code?: string; message?: string } };
       if (e?.error?.code === 'UNAUTHORIZED' || e?.error?.code === 'INVALID_TOKEN') {
-        setErrorMsg('You must be logged in. Please sign in first.');
+        setErrorMsg(t('mustLoginFirst'));
       } else {
-        setErrorMsg(e?.error?.message ?? 'Failed to create session.');
+        setErrorMsg(e?.error?.message ?? t('failedToCreateSession'));
       }
     } finally {
       setLoading(false);
     }
   }
 
-  const isUnauth = errorMsg.includes('logged in');
+  const isUnauth = errorMsg === t('mustLoginFirst');
 
   return (
     <main style={{ maxWidth: 520 }}>
@@ -166,39 +167,39 @@ export default function NewSessionPage() {
         .new-session-card { padding: 28px; }
         @media (max-width: 640px) { .new-session-card { padding: 20px 16px; } }
       `}</style>
-      <h1 style={{ fontSize: 20, fontWeight: 700, marginBottom: 20, color: '#111827' }}>Create Session</h1>
+      <h1 style={{ fontSize: 20, fontWeight: 700, marginBottom: 20, color: '#111827' }}>{t('createSession')}</h1>
 
       <div className="new-session-card" style={{ background: '#fff', borderRadius: 16, border: '1px solid #e5e7eb', boxShadow: '0 2px 8px rgba(0,0,0,0.08)' }}>
         <form onSubmit={handleSubmit} style={{ display: 'grid', gap: 16 }}>
           <label style={labelStyle}>
-            Title *
+            {t('titleRequired')}
             <input required value={title} onChange={(e) => setTitle(e.target.value)} style={inputStyle} />
           </label>
 
           <div className="new-session-dates">
             <label style={labelStyle}>
-              Start
+              {t('start')}
               <DatePicker
                 selected={startAt}
                 onChange={(date: Date | null) => setStartAt(date)}
                 showTimeSelect
                 timeIntervals={15}
-                dateFormat="MMM d, yyyy h:mm aa"
-                locale={enUS}
-                placeholderText="Select date & time"
+                dateFormat={locale === 'ja' ? 'yyyy/MM/dd HH:mm' : 'MMM d, yyyy h:mm aa'}
+                locale={datePickerLocale}
+                placeholderText={t('selectDateTime')}
                 customInput={<input style={inputStyle} />}
               />
             </label>
             <label style={labelStyle}>
-              End
+              {t('end')}
               <DatePicker
                 selected={endAt}
                 onChange={(date: Date | null) => setEndAt(date)}
                 showTimeSelect
                 timeIntervals={15}
-                dateFormat="MMM d, yyyy h:mm aa"
-                locale={enUS}
-                placeholderText="Select date & time"
+                dateFormat={locale === 'ja' ? 'yyyy/MM/dd HH:mm' : 'MMM d, yyyy h:mm aa'}
+                locale={datePickerLocale}
+                placeholderText={t('selectDateTime')}
                 minDate={startAt ?? undefined}
                 customInput={<input style={inputStyle} />}
               />
@@ -206,11 +207,11 @@ export default function NewSessionPage() {
           </div>
 
           <label style={labelStyle}>
-            Location *
+            {t('locationRequired')}
             <div style={{ display: 'flex', gap: 8, marginTop: 6, flexWrap: 'wrap' }}>
               <input
                 type="text"
-                placeholder="e.g. Vancouver, BC"
+                placeholder={t('locationPlaceholder')}
                 value={locationText}
                 onChange={(e) => { setLocationText(e.target.value); setLat(null); setLng(null); setPreviewLat(null); setPreviewLng(null); setPreviewMsg(''); }}
                 style={{ ...inputStyle, marginTop: 0, flex: 1, minWidth: 0 }}
@@ -220,7 +221,7 @@ export default function NewSessionPage() {
                 onClick={getLocation}
                 style={{ padding: '10px 14px', borderRadius: 8, background: '#eff6ff', color: '#3b82f6', fontWeight: 600, border: '1px solid #bfdbfe', cursor: 'pointer', fontSize: 13, whiteSpace: 'nowrap' }}
               >
-                Use my location
+                {t('useMyLocation')}
               </button>
               <button
                 type="button"
@@ -228,7 +229,7 @@ export default function NewSessionPage() {
                 disabled={previewLoading}
                 style={{ padding: '10px 14px', borderRadius: 8, background: '#f0fdf4', color: '#16a34a', fontWeight: 600, border: '1px solid #bbf7d0', cursor: previewLoading ? 'not-allowed' : 'pointer', fontSize: 13, whiteSpace: 'nowrap' }}
               >
-                {previewLoading ? '...' : 'Preview on map'}
+                {previewLoading ? '...' : t('previewOnMap')}
               </button>
             </div>
             {previewMsg && (
@@ -247,11 +248,11 @@ export default function NewSessionPage() {
           </label>
 
           <label style={labelStyle}>
-            Area label <span style={{ fontWeight: 400, color: '#9ca3af' }}>(public — auto-filled from location if empty)</span>
+            {t('areaLabel')} <span style={{ fontWeight: 400, color: '#9ca3af' }}>{t('areaLabelHint')}</span>
             <input
               value={publicAreaLabel}
               onChange={(e) => setPublicAreaLabel(e.target.value)}
-              placeholder="e.g. Downtown Vancouver"
+              placeholder={t('areaLabelPlaceholder')}
               style={inputStyle}
             />
           </label>
@@ -263,14 +264,14 @@ export default function NewSessionPage() {
               onChange={(e) => setRequiresApproval(e.target.checked)}
               style={{ width: 16, height: 16, cursor: 'pointer' }}
             />
-            Requires approval to join
+            {t('requiresApproval')}
           </label>
 
           {errorMsg && (
             <p style={{ fontSize: 13, color: '#ef4444', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 8, padding: '8px 12px', margin: 0 }}>
               {errorMsg}
               {isUnauth && (
-                <> — <a href="/login" style={{ color: '#3b82f6', textDecoration: 'underline' }}>Sign in</a></>
+                <> {' - '}<a href="/login" style={{ color: '#3b82f6', textDecoration: 'underline' }}>{t('signIn')}</a></>
               )}
             </p>
           )}
@@ -280,7 +281,7 @@ export default function NewSessionPage() {
             disabled={loading}
             style={{ padding: '11px 0', borderRadius: 8, background: loading ? '#9ca3af' : '#111827', color: '#fff', fontWeight: 600, border: 'none', cursor: loading ? 'not-allowed' : 'pointer', fontSize: 14, marginTop: 4 }}
           >
-            {loading ? 'Creating...' : 'Create Session'}
+            {loading ? t('creating') : t('createSession')}
           </button>
         </form>
       </div>

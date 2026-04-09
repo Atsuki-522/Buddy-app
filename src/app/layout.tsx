@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
+import { headers } from "next/headers";
 import { Geist, Geist_Mono } from "next/font/google";
 import Header from "@/components/Header";
 import SessionProvider from "@/components/SessionProvider";
+import { resolveLocale } from "@/lib/i18n";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -19,13 +21,16 @@ export const metadata: Metadata = {
   description: "Find and join local study sessions",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const headerStore = await headers();
+  const locale = resolveLocale(headerStore.get('accept-language'));
+
   return (
-    <html lang="en">
+    <html lang={locale}>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
         style={{ margin: 0, background: '#f9fafb', minHeight: '100vh' }}
@@ -34,7 +39,7 @@ export default function RootLayout({
           .page-content { max-width: 720px; margin: 0 auto; padding: 24px; }
           @media (max-width: 640px) { .page-content { padding: 16px 12px; } }
         `}</style>
-        <SessionProvider>
+        <SessionProvider initialLocale={locale}>
           <Header />
           <div className="page-content">
             {children}

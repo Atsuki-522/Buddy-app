@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useLocale } from '@/components/LocaleProvider';
 import { apiFetch, ApiError } from '@/lib/api';
 import { setToken } from '@/lib/auth';
 
@@ -26,6 +27,7 @@ const labelStyle: React.CSSProperties = {
 
 export default function RegisterPage() {
   const router = useRouter();
+  const { t } = useLocale();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [displayName, setDisplayName] = useState('');
@@ -46,7 +48,7 @@ export default function RegisterPage() {
       router.push('/sessions');
     } catch (err) {
       const { error } = err as ApiError;
-      setErrorMsg(error?.message ?? 'Registration failed. Please try again.');
+      setErrorMsg(error?.message ?? t('registrationFailed'));
     } finally {
       setLoading(false);
     }
@@ -59,11 +61,11 @@ export default function RegisterPage() {
         @media (max-width: 640px) { .auth-card { padding: 24px 20px; } }
       `}</style>
       <div className="auth-card" style={{ background: '#fff', borderRadius: 16, border: '1px solid #e5e7eb', boxShadow: '0 2px 8px rgba(0,0,0,0.08)' }}>
-        <h1 style={{ fontSize: 20, fontWeight: 700, marginBottom: 24, color: '#111827' }}>Create an account</h1>
+        <h1 style={{ fontSize: 20, fontWeight: 700, marginBottom: 24, color: '#111827' }}>{t('createAccount')}</h1>
 
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           <label style={labelStyle}>
-            Display Name
+            {t('displayName')}
             <input
               type="text"
               value={displayName}
@@ -75,7 +77,7 @@ export default function RegisterPage() {
           </label>
 
           <label style={labelStyle}>
-            Email
+            {t('email')}
             <input
               type="email"
               value={email}
@@ -87,7 +89,7 @@ export default function RegisterPage() {
           </label>
 
           <label style={labelStyle}>
-            Password
+            {t('password')}
             <input
               type="password"
               value={password}
@@ -109,14 +111,14 @@ export default function RegisterPage() {
             disabled={loading}
             style={{ padding: '11px 0', borderRadius: 8, background: loading ? '#9ca3af' : '#111827', color: '#fff', fontWeight: 600, border: 'none', cursor: loading ? 'not-allowed' : 'pointer', fontSize: 14, marginTop: 4 }}
           >
-            {loading ? 'Creating account...' : 'Register'}
+            {loading ? t('creatingAccount') : t('register')}
           </button>
         </form>
 
         <p style={{ marginTop: 20, textAlign: 'center', fontSize: 13, color: '#6b7280' }}>
-          Already have an account?{' '}
+          {t('alreadyHaveAccount')}{' '}
           <a href="/login" style={{ color: '#3b82f6', textDecoration: 'underline', fontWeight: 500 }}>
-            Login
+            {t('login')}
           </a>
         </p>
       </div>

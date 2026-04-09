@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { signOut, useSession } from 'next-auth/react';
+import { useLocale } from '@/components/LocaleProvider';
 import { apiFetch } from '@/lib/api';
 import { setToken } from '@/lib/auth';
 
@@ -79,6 +80,7 @@ const emptyStyle: React.CSSProperties = { fontSize: 13, color: '#9ca3af' };
 
 export default function MePage() {
   const router = useRouter();
+  const { t, formatDateTime, statusLabel } = useLocale();
   const { data: session } = useSession();
   const [user, setUser] = useState<User | null>(null);
   const [hosted, setHosted] = useState<Session[]>([]);
@@ -118,14 +120,14 @@ export default function MePage() {
         folder: 'profiles',
       },
       async (error, result) => {
-        if (error) { setUploadError('Upload failed.'); return; }
+        if (error) { setUploadError(t('uploadFailed')); return; }
         if (result.event === 'success') {
           const url = result.info.secure_url;
           try {
             await apiFetch('/auth/profile', { method: 'PATCH', body: { photoUrl: url } });
             setPhotoUrl(url);
           } catch {
-            setUploadError('Failed to save photo.');
+            setUploadError(t('failedToSavePhoto'));
           }
         }
       }
@@ -139,7 +141,7 @@ export default function MePage() {
       await apiFetch('/auth/profile', { method: 'PATCH', body: { bio } });
       setBioEdit(false);
     } catch {
-      setBioError('Failed to save bio.');
+      setBioError(t('failedToSaveBio'));
     } finally {
       setBioSaving(false);
     }
@@ -151,13 +153,13 @@ export default function MePage() {
   }
 
   async function handleDeleteHosted(id: string) {
-    if (!confirm('Delete this session? This cannot be undone.')) return;
+    if (!confirm(t('deleteSessionConfirm'))) return;
     setDeleteError('');
     try {
       await apiFetch(`/sessions/${id}`, { method: 'DELETE' });
       setHosted((prev) => prev.filter((s) => s._id !== id));
     } catch {
-      setDeleteError('Failed to delete session.');
+      setDeleteError(t('failedToDeleteSession'));
     }
   }
 
@@ -167,7 +169,7 @@ export default function MePage() {
       await apiFetch(`/join-requests/${rid}/${action}`, { method: 'PATCH' });
       setIncoming((prev) => prev.filter((r) => r._id !== rid));
     } catch {
-      setIncomingError(`Failed to ${action} request.`);
+      setIncomingError(action === 'approve' ? t('failedToApproveRequest') : t('failedToDenyRequest'));
     }
   }
 
@@ -194,20 +196,20 @@ export default function MePage() {
         setHostedPast(historyRes.hostedPast);
         setJoinedPast(historyRes.joinedPast);
       })
-      .catch(() => setErrorMsg('Failed to load account data. Please log in.'));
-  }, [session]);
+      .catch(() => setErrorMsg(t('accountLoadFailed')));
+  }, [session, t]);
 
   if (errorMsg) {
     return (
       <main style={{ maxWidth: 560 }}>
         <p style={{ color: '#ef4444', fontSize: 14, marginBottom: 8 }}>{errorMsg}</p>
-        <Link href="/login" style={{ fontSize: 14, color: '#3b82f6', textDecoration: 'underline' }}>Go to Login</Link>
+        <Link href="/login" style={{ fontSize: 14, color: '#3b82f6', textDecoration: 'underline' }}>{t('goToLogin')}</Link>
       </main>
     );
   }
 
   if (!user) {
-    return <main><p style={{ color: '#6b7280', fontSize: 14 }}>Loading...</p></main>;
+    return <main><p style={{ color: '#6b7280', fontSize: 14 }}>{t('loading')}</p></main>;
   }
 
   return (
@@ -232,13 +234,13 @@ export default function MePage() {
           onClick={handleLogout}
           style={{ position: 'absolute', top: 0, right: 0, padding: '5px 14px', borderRadius: 6, background: '#f3f4f6', color: '#374151', fontWeight: 600, border: '1px solid #d1d5db', cursor: 'pointer', fontSize: 12 }}
         >
-          Log out
+          {t('logout')}
         </button>
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, flexShrink: 0 }}>
           {photoUrl ? (
             <img
               src={photoUrl}
-              alt="Profile"
+              alt={t('profile')}
               style={{ width: 72, height: 72, borderRadius: '50%', objectFit: 'cover', border: '2px solid #e5e7eb' }}
             />
           ) : (
@@ -250,16 +252,15 @@ export default function MePage() {
             onClick={handleUpload}
             style={{ fontSize: 11, padding: '3px 10px', borderRadius: 6, border: '1px solid #d1d5db', background: '#fff', color: '#374151', cursor: 'pointer', fontWeight: 500 }}
           >
-            {photoUrl ? 'Change' : 'Add photo'}
+            {photoUrl ? t('change') : t('addPhoto')}
           </button>
           {uploadError && <p style={{ fontSize: 11, color: '#ef4444', margin: 0 }}>{uploadError}</p>}
         </div>
         <div style={{ flex: 1, minWidth: 0 }}>
           <h1 style={{ fontSize: 20, fontWeight: 700, marginBottom: 2 }}>{user.displayName}</h1>
           <p style={{ fontSize: 13, color: '#6b7280', marginBottom: 2 }}>{user.email}</p>
-          <p style={{ fontSize: 13, color: '#6b7280', marginBottom: 8 }}>Reliability score: <strong style={{ color: '#374151' }}>{user.reliabilityScore}</strong></p>
+          <p style={{ fontSize: 13, color: '#6b7280', marginBottom: 8 }}>{t('reliabilityScore')}: <strong style={{ color: '#374151' }}>{user.reliabilityScore}</strong></p>
 
-          {/* Bio */}
           {bioEdit ? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
               <textarea
@@ -267,7 +268,7 @@ export default function MePage() {
                 onChange={(e) => setBio(e.target.value)}
                 rows={3}
                 maxLength={200}
-                placeholder="Write a short introduction..."
+                placeholder={t('bioPlaceholder')}
                 style={{ width: '100%', padding: '8px 10px', border: '1px solid #d1d5db', borderRadius: 8, fontSize: 13, resize: 'vertical', boxSizing: 'border-box' }}
               />
               <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
@@ -276,13 +277,13 @@ export default function MePage() {
                   disabled={bioSaving}
                   style={{ padding: '4px 14px', borderRadius: 6, background: bioSaving ? '#9ca3af' : '#111827', color: '#fff', fontWeight: 600, border: 'none', cursor: bioSaving ? 'not-allowed' : 'pointer', fontSize: 12 }}
                 >
-                  {bioSaving ? 'Saving...' : 'Save'}
+                  {bioSaving ? t('saving') : t('save')}
                 </button>
                 <button
                   onClick={() => { setBioEdit(false); setBio(user.bio ?? ''); }}
                   style={{ padding: '4px 14px', borderRadius: 6, background: '#f3f4f6', color: '#374151', fontWeight: 600, border: '1px solid #d1d5db', cursor: 'pointer', fontSize: 12 }}
                 >
-                  Cancel
+                  {t('cancel')}
                 </button>
                 <span style={{ fontSize: 11, color: '#9ca3af', marginLeft: 4 }}>{bio.length}/200</span>
               </div>
@@ -291,13 +292,13 @@ export default function MePage() {
           ) : (
             <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
               <p style={{ fontSize: 13, color: bio ? '#374151' : '#9ca3af', margin: 0, flex: 1 }}>
-                {bio || 'No bio yet.'}
+                {bio || t('noBioYet')}
               </p>
               <button
                 onClick={() => setBioEdit(true)}
                 style={{ fontSize: 11, padding: '3px 10px', borderRadius: 6, border: '1px solid #d1d5db', background: '#fff', color: '#374151', cursor: 'pointer', fontWeight: 500, flexShrink: 0 }}
               >
-                Edit
+                {t('edit')}
               </button>
             </div>
           )}
@@ -305,21 +306,20 @@ export default function MePage() {
       </div>
 
       <div className="me-grid">
-        {/* Hosted sessions */}
         <div>
           <p style={{ fontSize: 11, fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 10 }}>
-            Hosted · {upcoming(hosted).length}
+            {t('hosted')} · {upcoming(hosted).length}
           </p>
           {deleteError && <p style={{ color: '#ef4444', fontSize: 13, marginBottom: 8 }}>{deleteError}</p>}
           {upcoming(hosted).length === 0 ? (
-            <p style={emptyStyle}>No upcoming hosted sessions.</p>
+            <p style={emptyStyle}>{t('noUpcomingHostedSessions')}</p>
           ) : (
             byClosest(upcoming(hosted)).map((s) => (
               <div key={s._id} style={{ ...itemStyle, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <Link href={`/sessions/${s._id}`} style={{ textDecoration: 'none', color: 'inherit', flex: 1, minWidth: 0 }}>
                   <div style={{ fontSize: 14, fontWeight: 500, color: '#111827' }}>{s.title}</div>
                   <div style={{ fontSize: 12, color: '#9ca3af', marginTop: 2 }}>
-                    {new Date(s.startAt).toLocaleString('en-CA')} · {s.status}
+                    {formatDateTime(s.startAt)} · {statusLabel(s.status)}
                   </div>
                 </Link>
                 <div style={{ display: 'flex', gap: 6, marginLeft: 10, flexShrink: 0 }}>
@@ -327,13 +327,13 @@ export default function MePage() {
                     onClick={() => router.push(`/sessions/${s._id}`)}
                     style={{ padding: '3px 10px', borderRadius: 5, background: '#111827', color: '#fff', fontWeight: 600, border: 'none', cursor: 'pointer', fontSize: 12 }}
                   >
-                    Edit
+                    {t('edit')}
                   </button>
                   <button
                     onClick={() => handleDeleteHosted(s._id)}
                     style={{ padding: '3px 10px', borderRadius: 5, background: '#6b7280', color: '#fff', fontWeight: 600, border: 'none', cursor: 'pointer', fontSize: 12 }}
                   >
-                    Delete
+                    {t('delete')}
                   </button>
                 </div>
               </div>
@@ -341,38 +341,36 @@ export default function MePage() {
           )}
         </div>
 
-        {/* Pending join requests */}
         <div>
           <p style={{ fontSize: 11, fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 10 }}>
-            Pending · {pending.length}
+            {t('pending')} · {pending.length}
           </p>
           {pending.length === 0 ? (
-            <p style={emptyStyle}>No pending requests.</p>
+            <p style={emptyStyle}>{t('noPendingRequests')}</p>
           ) : (
             pendingByClosest(pending).map((r) => (
               <Link key={r._id} href={`/sessions/${r.sessionId}`} style={itemStyle}>
                 <div style={{ fontSize: 14, fontWeight: 500, color: '#111827' }}>{r.session?.title ?? r.sessionId}</div>
                 <div style={{ fontSize: 12, color: '#9ca3af', marginTop: 2 }}>
-                  {r.session ? new Date(r.session.startAt).toLocaleString('en-CA') : ''}
+                  {r.session ? formatDateTime(r.session.startAt) : ''}
                 </div>
               </Link>
             ))
           )}
         </div>
 
-        {/* Joined sessions */}
         <div>
           <p style={{ fontSize: 11, fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 10 }}>
-            Joined · {upcoming(joined).length}
+            {t('joined')} · {upcoming(joined).length}
           </p>
           {upcoming(joined).length === 0 ? (
-            <p style={emptyStyle}>No upcoming joined sessions.</p>
+            <p style={emptyStyle}>{t('noUpcomingJoinedSessions')}</p>
           ) : (
             byClosest(upcoming(joined)).map((s) => (
               <Link key={s._id} href={`/sessions/${s._id}`} style={itemStyle}>
                 <div style={{ fontSize: 14, fontWeight: 500, color: '#111827' }}>{s.title}</div>
                 <div style={{ fontSize: 12, color: '#9ca3af', marginTop: 2 }}>
-                  {new Date(s.startAt).toLocaleString('en-CA')} · {s.status}
+                  {formatDateTime(s.startAt)} · {statusLabel(s.status)}
                 </div>
               </Link>
             ))
@@ -380,21 +378,20 @@ export default function MePage() {
         </div>
       </div>
 
-      {/* Incoming join requests */}
       <div style={{ marginTop: 32, paddingTop: 24, borderTop: '1px solid #e5e7eb' }}>
         <p style={{ fontSize: 11, fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 12 }}>
-          Incoming Requests · {incoming.length}
+          {t('incomingRequests')} · {incoming.length}
         </p>
         {incomingError && <p style={{ color: '#ef4444', fontSize: 13, marginBottom: 8 }}>{incomingError}</p>}
         {incoming.length === 0 ? (
-          <p style={emptyStyle}>No incoming requests.</p>
+          <p style={emptyStyle}>{t('noIncomingRequests')}</p>
         ) : (
           incoming.map((r) => (
             <div key={r._id} style={{ display: 'flex', alignItems: 'flex-start', gap: 12, padding: '10px 0', borderBottom: '1px solid #f3f4f6' }}>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontSize: 13, fontWeight: 600, color: '#374151' }}>{r.session?.title ?? r.sessionId}</div>
                 <div style={{ fontSize: 13, color: '#6b7280', marginTop: 1 }}>
-                  {r.requester?.displayName ?? <em style={{ color: '#9ca3af' }}>Unknown user</em>}
+                  {r.requester?.displayName ?? <em style={{ color: '#9ca3af' }}>{t('unknownUser')}</em>}
                 </div>
                 {r.message && <div style={{ fontSize: 13, color: '#374151', marginTop: 2 }}>{r.message}</div>}
               </div>
@@ -402,20 +399,19 @@ export default function MePage() {
                 onClick={() => handleIncomingAction(r._id, 'approve')}
                 style={{ padding: '4px 12px', borderRadius: 6, background: '#111827', color: '#fff', fontWeight: 600, border: 'none', cursor: 'pointer', fontSize: 13, flexShrink: 0 }}
               >
-                Approve
+                {t('approve')}
               </button>
               <button
                 onClick={() => handleIncomingAction(r._id, 'deny')}
                 style={{ padding: '4px 12px', borderRadius: 6, background: '#6b7280', color: '#fff', fontWeight: 600, border: 'none', cursor: 'pointer', fontSize: 13, flexShrink: 0 }}
               >
-                Deny
+                {t('deny')}
               </button>
             </div>
           ))
         )}
       </div>
 
-      {/* Past sessions */}
       <div style={{ marginTop: 32, paddingTop: 24, borderTop: '1px solid #e5e7eb' }}>
         <style>{`
           .history-grid {
@@ -429,21 +425,21 @@ export default function MePage() {
           }
         `}</style>
         <p style={{ fontSize: 11, fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: 1 }}>
-          History
+          {t('history')}
         </p>
         <div className="history-grid">
           <div>
             <p style={{ fontSize: 11, fontWeight: 600, color: '#d1d5db', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>
-              Hosted past · {hostedPast.length}
+              {t('hostedPast')} · {hostedPast.length}
             </p>
             {hostedPast.length === 0 ? (
-              <p style={emptyStyle}>No past hosted sessions.</p>
+              <p style={emptyStyle}>{t('noPastHostedSessions')}</p>
             ) : (
               hostedPast.map((s) => (
                 <Link key={s._id} href={`/sessions/${s._id}`} style={itemStyle}>
                   <div style={{ fontSize: 14, fontWeight: 500, color: '#6b7280' }}>{s.title}</div>
                   <div style={{ fontSize: 12, color: '#9ca3af', marginTop: 2 }}>
-                    {new Date(s.endAt).toLocaleString('en-CA', { dateStyle: 'medium', timeStyle: 'short' })} · {s.status}
+                    {formatDateTime(s.endAt)} · {statusLabel(s.status)}
                   </div>
                 </Link>
               ))
@@ -451,16 +447,16 @@ export default function MePage() {
           </div>
           <div>
             <p style={{ fontSize: 11, fontWeight: 600, color: '#d1d5db', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>
-              Joined past · {joinedPast.length}
+              {t('joinedPast')} · {joinedPast.length}
             </p>
             {joinedPast.length === 0 ? (
-              <p style={emptyStyle}>No past joined sessions.</p>
+              <p style={emptyStyle}>{t('noPastJoinedSessions')}</p>
             ) : (
               joinedPast.map((s) => (
                 <Link key={s._id} href={`/sessions/${s._id}`} style={itemStyle}>
                   <div style={{ fontSize: 14, fontWeight: 500, color: '#6b7280' }}>{s.title}</div>
                   <div style={{ fontSize: 12, color: '#9ca3af', marginTop: 2 }}>
-                    {new Date(s.endAt).toLocaleString('en-CA', { dateStyle: 'medium', timeStyle: 'short' })} · {s.status}
+                    {formatDateTime(s.endAt)} · {statusLabel(s.status)}
                   </div>
                 </Link>
               ))

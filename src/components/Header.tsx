@@ -1,37 +1,35 @@
 'use client';
 
 import Link from 'next/link';
+import { Bell } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
+import { useLocale } from '@/components/LocaleProvider';
 import { apiFetch } from '@/lib/api';
 import { getToken } from '@/lib/auth';
 
-const NAV_LINKS = [
-  { href: '/sessions', label: 'Sessions' },
-  { href: '/notifications', label: 'Notifications' },
-  { href: '/sessions/new', label: 'Create' },
-];
-
 export default function Header() {
   const pathname = usePathname();
+  const { t } = useLocale();
+  const hasToken = !!getToken();
   const [displayName, setDisplayName] = useState<string | null>(null);
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
   const [unreadCount, setUnreadCount] = useState(0);
+  const navLinks = [
+    { href: '/sessions', label: t('navSessions') },
+    { href: '/notifications', label: t('navNotifications') },
+    { href: '/sessions/new', label: t('navCreate') },
+  ];
 
   useEffect(() => {
-    if (!getToken()) {
-      setDisplayName(null);
-      setPhotoUrl(null);
-      setUnreadCount(0);
-      return;
-    }
+    if (!hasToken) return;
     apiFetch<{ user: { displayName: string; photoUrl?: string | null } }>('/auth/me')
       .then((res) => { setDisplayName(res.user.displayName); setPhotoUrl(res.user.photoUrl ?? null); })
       .catch(() => setDisplayName(null));
     apiFetch<{ count: number }>('/notifications/unread-count')
       .then((res) => setUnreadCount(res.count))
       .catch(() => setUnreadCount(0));
-  }, [pathname]);
+  }, [hasToken, pathname]);
 
   return (
     <>
@@ -45,7 +43,7 @@ export default function Header() {
           .hdr-inner { padding: 0 12px; }
           .hdr-navlink { padding: 5px 8px !important; font-size: 13px !important; }
           .hdr-notif-label { display: none; }
-          .hdr-notif-icon { display: inline-block; }
+          .hdr-notif-icon { display: inline-flex; }
           .hdr-user-name { display: none; }
         }
       `}</style>
@@ -58,11 +56,11 @@ export default function Header() {
       }}>
         <div className="hdr-inner">
           <Link href="/" style={{ fontWeight: 800, fontSize: 16, color: '#111827', textDecoration: 'none', letterSpacing: '-0.3px', flexShrink: 0 }}>
-            Event Buddy
+            {t('appName')}
           </Link>
 
           <nav style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
-            {NAV_LINKS.map(({ href, label }) => {
+            {navLinks.map(({ href, label }) => {
               const active = pathname === href || (href !== '/' && pathname.startsWith(href) && !(href === '/sessions' && pathname.startsWith('/sessions/new')));
               const isNotifications = href === '/notifications';
               return (
@@ -79,10 +77,10 @@ export default function Header() {
                   {isNotifications ? (
                     <>
                       <span className="hdr-notif-label">{label}</span>
-                      <span className="hdr-notif-icon" aria-hidden="true">●</span>
+                      <span className="hdr-notif-icon" aria-hidden="true"><Bell size={16} /></span>
                     </>
                   ) : label}
-                  {isNotifications && unreadCount > 0 && (
+                  {isNotifications && hasToken && unreadCount > 0 && (
                     <span style={{
                       position: 'absolute',
                       top: 2,
@@ -104,7 +102,7 @@ export default function Header() {
                 </Link>
               );
             })}
-            {displayName ? (
+            {hasToken && displayName ? (
               <Link
                 href="/me"
                 className="hdr-navlink"
@@ -138,7 +136,7 @@ export default function Header() {
                   background: pathname === '/login' ? '#f3f4f6' : 'transparent',
                 }}
               >
-                Login
+                {t('login')}
               </Link>
             )}
           </nav>

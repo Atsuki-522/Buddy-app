@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import { useLocale } from '@/components/LocaleProvider';
 import { apiFetch } from '@/lib/api';
 
 type Notification = {
@@ -16,6 +17,7 @@ type Notification = {
 
 export default function NotificationsPage() {
   const router = useRouter();
+  const { t, formatDateTime } = useLocale();
   const [items, setItems] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [errorMsg, setErrorMsg] = useState('');
@@ -49,8 +51,8 @@ export default function NotificationsPage() {
         setItems(notifRes.items);
         setUnreadCount(countRes.count);
       })
-      .catch(() => setErrorMsg('Failed to load notifications.'));
-  }, []);
+      .catch(() => setErrorMsg(t('failedToLoadNotifications')));
+  }, [t]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -64,7 +66,7 @@ export default function NotificationsPage() {
         return wasUnread ? Math.max(0, prev - 1) : prev;
       });
     } catch {
-      setErrorMsg('Failed to delete notification.');
+      setErrorMsg(t('failedToDeleteNotification'));
     } finally {
       setDeleting(null);
     }
@@ -76,7 +78,7 @@ export default function NotificationsPage() {
       await apiFetch(`/notifications/${id}/read`, { method: 'PATCH' });
       load();
     } catch {
-      setErrorMsg('Failed to mark as read.');
+      setErrorMsg(t('failedToMarkRead'));
     } finally {
       setMarking(null);
     }
@@ -89,9 +91,9 @@ export default function NotificationsPage() {
         .notif-buttons { display: flex; flex-direction: column; gap: 6px; flex-shrink: 0; }
         @media (max-width: 400px) { .notif-buttons button { font-size: 11px !important; padding: 5px 8px !important; } }
       `}</style>
-      <h1 style={{ fontSize: 22, fontWeight: 700, marginBottom: 4 }}>Notifications</h1>
+      <h1 style={{ fontSize: 22, fontWeight: 700, marginBottom: 4 }}>{t('notifications')}</h1>
       <p style={{ fontSize: 14, color: '#6b7280', marginBottom: 20 }}>
-        {unreadCount} unread
+        {t('unreadCount', { count: unreadCount })}
       </p>
 
       {errorMsg && (
@@ -99,7 +101,7 @@ export default function NotificationsPage() {
       )}
 
       {items.length === 0 && !errorMsg && (
-        <p style={{ color: '#6b7280', fontSize: 14 }}>No notifications yet.</p>
+        <p style={{ color: '#6b7280', fontSize: 14 }}>{t('noNotificationsYet')}</p>
       )}
 
       <div style={{ display: 'grid', gap: 10 }}>
@@ -117,8 +119,8 @@ export default function NotificationsPage() {
               <div style={{ fontWeight: 600, fontSize: 14, color: n.readAt ? '#374151' : '#111827' }}>{n.title}</div>
               <div style={{ fontSize: 13, color: '#6b7280', marginTop: 4, lineHeight: 1.5 }}>{n.body}</div>
               <div style={{ fontSize: 11, color: '#9ca3af', marginTop: 8 }}>
-                {new Date(n.createdAt).toLocaleString('en-CA')}
-                {!n.readAt && <span style={{ marginLeft: 8, color: '#3b82f6', fontWeight: 600 }}>● Unread</span>}
+                {formatDateTime(n.createdAt)}
+                {!n.readAt && <span style={{ marginLeft: 8, color: '#3b82f6', fontWeight: 600 }}>{t('unread')}</span>}
               </div>
             </div>
             <div className="notif-buttons">
@@ -138,7 +140,7 @@ export default function NotificationsPage() {
                     whiteSpace: 'nowrap',
                   }}
                 >
-                  {marking === n._id ? '...' : 'Mark as read'}
+                  {marking === n._id ? '...' : t('markAsRead')}
                 </button>
               )}
               <button
@@ -156,7 +158,7 @@ export default function NotificationsPage() {
                   whiteSpace: 'nowrap',
                 }}
               >
-                {deleting === n._id ? '...' : 'Delete'}
+                {deleting === n._id ? '...' : t('delete')}
               </button>
             </div>
           </div>

@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
+import { useLocale } from '@/components/LocaleProvider';
 import { apiFetch } from '@/lib/api';
 
 type PublicUser = {
@@ -15,23 +16,24 @@ type PublicUser = {
 
 export default function UserProfilePage() {
   const { id } = useParams<{ id: string }>();
+  const { t } = useLocale();
   const [user, setUser] = useState<PublicUser | null>(null);
   const [errorMsg, setErrorMsg] = useState('');
 
   useEffect(() => {
     apiFetch<{ user: PublicUser }>(`/users/${id}`, { auth: false })
       .then((res) => setUser(res.user))
-      .catch(() => setErrorMsg('User not found.'));
-  }, [id]);
+      .catch(() => setErrorMsg(t('userNotFound')));
+  }, [id, t]);
 
   return (
     <main style={{ maxWidth: 480 }}>
       <Link href="javascript:history.back()" style={{ fontSize: 13, color: '#3b82f6', textDecoration: 'underline' }}>
-        ← Back
+        {t('back')}
       </Link>
 
       {errorMsg && <p style={{ marginTop: 16, color: '#ef4444' }}>{errorMsg}</p>}
-      {!user && !errorMsg && <p style={{ marginTop: 16, color: '#6b7280' }}>Loading...</p>}
+      {!user && !errorMsg && <p style={{ marginTop: 16, color: '#6b7280' }}>{t('loading')}</p>}
 
       {user && (
         <div style={{ marginTop: 24 }}>
@@ -50,7 +52,7 @@ export default function UserProfilePage() {
             <div>
               <div style={{ fontSize: 20, fontWeight: 700 }}>{user.displayName}</div>
               <div style={{ fontSize: 13, color: '#6b7280', marginTop: 2 }}>
-                Reliability: {user.reliabilityScore}
+                {t('reliability')}: {user.reliabilityScore}
               </div>
             </div>
           </div>
@@ -60,7 +62,7 @@ export default function UserProfilePage() {
               {user.bio}
             </div>
           ) : (
-            <p style={{ fontSize: 14, color: '#9ca3af' }}>No bio yet.</p>
+            <p style={{ fontSize: 14, color: '#9ca3af' }}>{t('noBioYet')}</p>
           )}
         </div>
       )}

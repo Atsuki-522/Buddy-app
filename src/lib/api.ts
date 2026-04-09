@@ -23,6 +23,10 @@ export async function apiFetch<T>(
     'Content-Type': 'application/json',
   };
 
+  if (typeof navigator !== 'undefined') {
+    headers['Accept-Language'] = navigator.languages?.[0] ?? navigator.language;
+  }
+
   if (auth) {
     const token = getToken();
     if (token) headers['Authorization'] = `Bearer ${token}`;

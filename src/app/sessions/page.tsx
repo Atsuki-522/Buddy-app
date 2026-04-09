@@ -3,9 +3,9 @@
 import { useEffect, useState } from 'react';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
+import { useLocale } from '@/components/LocaleProvider';
 import { apiFetch } from '@/lib/api';
 import DatePicker from 'react-datepicker';
-import { enUS } from 'date-fns/locale';
 import 'react-datepicker/dist/react-datepicker.css';
 
 const SessionsMap = dynamic(() => import('@/components/SessionsMap'), { ssr: false });
@@ -25,6 +25,7 @@ type SessionItem = {
 };
 
 export default function SessionsPage() {
+  const { locale, t, formatDateTime, datePickerLocale } = useLocale();
   const [lat, setLat] = useState<number | null>(null);
   const [lng, setLng] = useState<number | null>(null);
   const [userLat, setUserLat] = useState<number | null>(null);
@@ -54,7 +55,7 @@ export default function SessionsPage() {
 
   function getLocation() {
     if (!navigator.geolocation) {
-      setErrorMsg('Geolocation is not supported by your browser.');
+      setErrorMsg(t('geolocationUnsupported'));
       return;
     }
     navigator.geolocation.getCurrentPosition(
@@ -64,14 +65,14 @@ export default function SessionsPage() {
         setLocationText('');
         setErrorMsg('');
       },
-      () => setErrorMsg('Location permission denied.')
+      () => setErrorMsg(t('locationPermissionDenied'))
     );
   }
 
   async function geocode(query: string): Promise<{ lat: number; lng: number } | null> {
     const res = await fetch(
       `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=5`,
-      { headers: { 'Accept-Language': 'en' } }
+      { headers: { 'Accept-Language': locale } }
     );
     const data = await res.json();
     if (!data.length) return null;
@@ -94,7 +95,7 @@ export default function SessionsPage() {
     setPreviewLat(null);
     setPreviewLng(null);
     if (!locationText.trim() && lat == null) {
-      setPreviewMsg('Enter a location first.');
+      setPreviewMsg(t('enterLocationFirst'));
       return;
     }
     if (lat != null && lng != null && !locationText.trim()) {
@@ -106,7 +107,7 @@ export default function SessionsPage() {
     const result = await geocode(locationText.trim());
     setPreviewLoading(false);
     if (!result) {
-      setPreviewMsg('Could not find that location.');
+      setPreviewMsg(t('locationSearchFailed'));
       return;
     }
     setPreviewLat(result.lat);
@@ -121,10 +122,9 @@ export default function SessionsPage() {
     let searchLng = lng;
 
     if (locationText.trim()) {
-      // Always geocode when text is entered
       const result = await geocode(locationText.trim());
       if (!result) {
-        setErrorMsg('Location not found. Try a different search term.');
+        setErrorMsg(t('locationNotFound'));
         setLoading(false);
         return;
       }
@@ -133,7 +133,7 @@ export default function SessionsPage() {
       setLat(searchLat);
       setLng(searchLng);
     } else if (searchLat == null || searchLng == null) {
-      setErrorMsg('Enter a location or click "Use my location".');
+      setErrorMsg(t('enterLocationOrUseCurrent'));
       setLoading(false);
       return;
     }
@@ -154,11 +154,20 @@ export default function SessionsPage() {
       setSearchedStartAt(startAt);
     } catch (err) {
       const e = err as { error?: { message?: string } };
-      setErrorMsg(e?.error?.message ?? 'Failed to load sessions.');
+      setErrorMsg(e?.error?.message ?? t('failedToLoadSessions'));
     } finally {
       setLoading(false);
     }
   }
+
+  function distanceLabel(distanceMeters: number) {
+    if (distanceMeters >= 1000) {
+      return t('kmAway', { value: (distanceMeters / 1000).toFixed(1) });
+    }
+    return t('metersAway', { value: Math.round(distanceMeters) });
+  }
+
+  const sessionWord = items.length === 1 ? t('sessionSingular') : t('sessionPlural');
 
   return (
     <main>
@@ -177,13 +186,13 @@ export default function SessionsPage() {
           .sessions-list > div { height: auto !important; overflow-y: visible !important; }
         }
       `}</style>
-      <h1 style={{ fontSize: 22, fontWeight: 700, marginBottom: 20 }}>Find Sessions</h1>
+      <h1 style={{ fontSize: 22, fontWeight: 700, marginBottom: 20 }}>{t('findSessions')}</h1>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
         <div className="sessions-search-row">
           <input
             type="text"
-            placeholder="e.g. Vancouver, BC"
+            placeholder={t('locationPlaceholder')}
             value={locationText}
             onChange={(e) => { setLocationText(e.target.value); setLat(null); setLng(null); }}
             style={{ flex: 1, padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: 8, fontSize: 14, outline: 'none', minWidth: 0 }}
@@ -193,7 +202,7 @@ export default function SessionsPage() {
             onClick={getLocation}
             style={{ padding: '8px 14px', borderRadius: 8, background: '#eff6ff', color: '#3b82f6', fontWeight: 600, border: '1px solid #bfdbfe', cursor: 'pointer', fontSize: 13, whiteSpace: 'nowrap' }}
           >
-            Use my location
+            {t('useMyLocation')}
           </button>
           <button
             type="button"
@@ -201,7 +210,7 @@ export default function SessionsPage() {
             disabled={previewLoading}
             style={{ padding: '8px 14px', borderRadius: 8, background: '#f0fdf4', color: '#16a34a', fontWeight: 600, border: '1px solid #bbf7d0', cursor: previewLoading ? 'not-allowed' : 'pointer', fontSize: 13, whiteSpace: 'nowrap' }}
           >
-            {previewLoading ? '...' : 'Preview on map'}
+            {previewLoading ? '...' : t('previewOnMap')}
           </button>
         </div>
 
@@ -220,7 +229,7 @@ export default function SessionsPage() {
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
           <label style={{ fontSize: 13 }}>
-            Radius (km)
+            {t('radiusKm')}
             <input
               type="number"
               min={1}
@@ -230,7 +239,7 @@ export default function SessionsPage() {
             />
           </label>
           <label style={{ fontSize: 13 }}>
-            Limit
+            {t('limit')}
             <input
               type="number"
               min={1}
@@ -243,15 +252,15 @@ export default function SessionsPage() {
         </div>
 
         <div style={{ fontSize: 13 }}>
-          <div>Start at</div>
+          <div>{t('startAt')}</div>
           <DatePicker
             selected={startAt}
             onChange={(date: Date | null) => setStartAt(date)}
             showTimeSelect
             timeIntervals={15}
-            dateFormat="MMM d, yyyy h:mm aa"
-            locale={enUS}
-            placeholderText="Select date & time"
+            dateFormat={locale === 'ja' ? 'yyyy/MM/dd HH:mm' : 'MMM d, yyyy h:mm aa'}
+            locale={datePickerLocale}
+            placeholderText={t('selectDateTime')}
             isClearable
             popperPlacement="right-start"
             wrapperClassName="datepicker-startAt"
@@ -260,22 +269,22 @@ export default function SessionsPage() {
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
           <label style={{ fontSize: 13 }}>
-            Within hours
+            {t('withinHours')}
             <input
               type="number"
               min={0}
-              placeholder="e.g. 2"
+              placeholder="2"
               value={withinHours}
               onChange={(e) => setWithinHours(e.target.value)}
               style={{ display: 'block', width: '100%', marginTop: 4, padding: '6px 8px', border: '1px solid #d1d5db', borderRadius: 6 }}
             />
           </label>
           <label style={{ fontSize: 13 }}>
-            Within minutes
+            {t('withinMinutes')}
             <input
               type="number"
               min={0}
-              placeholder="e.g. 30"
+              placeholder="30"
               value={withinMin}
               onChange={(e) => setWithinMin(e.target.value)}
               style={{ display: 'block', width: '100%', marginTop: 4, padding: '6px 8px', border: '1px solid #d1d5db', borderRadius: 6 }}
@@ -288,7 +297,7 @@ export default function SessionsPage() {
           disabled={loading}
           style={{ padding: '8px 16px', borderRadius: 8, background: loading ? '#9ca3af' : '#111827', color: '#fff', fontWeight: 600, border: 'none', cursor: loading ? 'not-allowed' : 'pointer' }}
         >
-          {loading ? 'Searching...' : 'Search'}
+          {loading ? t('searching') : t('search')}
         </button>
       </div>
 
@@ -296,56 +305,45 @@ export default function SessionsPage() {
         <p style={{ marginTop: 16, color: '#ef4444', fontSize: 14 }}>Error: {errorMsg}</p>
       )}
 
-      {/* 2-column layout: cards left, map right — always visible */}
       <div className="sessions-results">
-
-        {/* Left: session cards */}
         <div className="sessions-list">
           {searchedRadius != null && (
             <div style={{ marginBottom: 10, fontSize: 13, color: '#6b7280' }}>
-              <span>{items.length} session{items.length !== 1 ? 's' : ''} within {searchedRadius} km</span>
+              <span>{t('sessionsWithinRadius', { count: items.length, sessionWord, radius: searchedRadius })}</span>
               {searchedStartAt && (
-                <span> · sorted by closest to {searchedStartAt.toLocaleString('en-CA', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
+                <span> {' · '}{t('sortedByClosestTo', { value: formatDateTime(searchedStartAt, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) })}</span>
               )}
-
             </div>
           )}
-          {/* Scroll wrapper — only this scrolls */}
           <div style={{ height: 460, overflowY: 'auto', paddingRight: 4 }}>
             <div style={{ display: 'grid', gap: 12 }}>
               {items.length === 0 ? (
                 <div style={{ padding: '28px 20px', background: '#fff', border: '1px solid #e5e7eb', borderRadius: 14, boxShadow: '0 1px 4px rgba(0,0,0,0.06)', textAlign: 'center' }}>
-                  <div style={{ fontSize: 15, fontWeight: 600, color: '#374151', marginBottom: 6 }}>No sessions found.</div>
-                  <div style={{ fontSize: 13, color: '#9ca3af' }}>Try a wider radius or different time range.</div>
+                  <div style={{ fontSize: 15, fontWeight: 600, color: '#374151', marginBottom: 6 }}>{t('noSessionsFound')}</div>
+                  <div style={{ fontSize: 13, color: '#9ca3af' }}>{t('tryWiderRadius')}</div>
                 </div>
               ) : (
-                items.map(({ session, distanceMeters }) => {
-                  const distLabel = distanceMeters >= 1000
-                    ? `${(distanceMeters / 1000).toFixed(1)} km away`
-                    : `${Math.round(distanceMeters)} m away`;
-                  return (
-                    <Link
-                      key={session._id}
-                      href={`/sessions/${session._id}`}
-                      style={{ display: 'block', padding: '16px 18px', background: '#fff', border: '1px solid #e5e7eb', borderRadius: 14, boxShadow: '0 1px 4px rgba(0,0,0,0.06)', textDecoration: 'none', color: 'inherit' }}
-                    >
-                      <div style={{ fontWeight: 700, fontSize: 15, color: '#111827', marginBottom: 6 }}>{session.title}</div>
-                      <div style={{ fontSize: 13, color: '#6b7280', display: 'flex', flexDirection: 'column', gap: 2 }}>
-                        <span>{new Date(session.startAt).toLocaleString('en-CA', { dateStyle: 'medium', timeStyle: 'short' })}</span>
-                        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                          {session.publicAreaLabel && <span>{session.publicAreaLabel}</span>}
-                          <span style={{ color: '#9ca3af' }}>{distLabel}</span>
-                        </div>
+                items.map(({ session, distanceMeters }) => (
+                  <Link
+                    key={session._id}
+                    href={`/sessions/${session._id}`}
+                    style={{ display: 'block', padding: '16px 18px', background: '#fff', border: '1px solid #e5e7eb', borderRadius: 14, boxShadow: '0 1px 4px rgba(0,0,0,0.06)', textDecoration: 'none', color: 'inherit' }}
+                  >
+                    <div style={{ fontWeight: 700, fontSize: 15, color: '#111827', marginBottom: 6 }}>{session.title}</div>
+                    <div style={{ fontSize: 13, color: '#6b7280', display: 'flex', flexDirection: 'column', gap: 2 }}>
+                      <span>{formatDateTime(session.startAt)}</span>
+                      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                        {session.publicAreaLabel && <span>{session.publicAreaLabel}</span>}
+                        <span style={{ color: '#9ca3af' }}>{distanceLabel(distanceMeters)}</span>
                       </div>
-                    </Link>
-                  );
-                })
+                    </div>
+                  </Link>
+                ))
               )}
             </div>
           </div>
         </div>
 
-        {/* Right: map — always shown */}
         <div className="sessions-map">
           <SessionsMap
             items={items}
@@ -353,7 +351,6 @@ export default function SessionsPage() {
             height={300}
           />
         </div>
-
       </div>
     </main>
   );
